@@ -298,15 +298,15 @@ Compétences mobilisées :
 
 ## Catalogue
 
-![Catalogue](docs/screenshots/catalogue.png)
+![Agenda](docs/screenshots/agenda.png)
 
-## Fiche produit
+## Connexion
 
-![Produit](docs/screenshots/product.png)
+![Produit](docs/screenshots/connexion.png)
 
-## Checkout
+## Produits
 
-![Checkout](docs/screenshots/checkout.png)
+![Checkout](docs/screenshots/produits.png)
 
 ---
 
