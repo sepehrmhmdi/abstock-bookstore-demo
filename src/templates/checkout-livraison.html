@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}Livraison{% endblock %}
+{% block content %}
+
+<style>
+/* palette douce, cohérente avec Connexion/Paiement */
+:root{
+  --primary:#3f4c73;
+  --primary-weak:#e6eaf7;
+  --ink:#2b2b2b;
+  --paper:#fffdf3;
+  --border:#e6ddc7;
+}
+
+.checkout-wrap{max-width:900px;margin:0 auto;padding:1.2rem}
+h1.title{font-size:1.35rem;margin:.2rem 0 .8rem;text-align:center;color:var(--ink);font-weight:600}
+
+/* STEP HEADER — identique à la page Paiement */
+.stepper{display:flex;gap:.75rem;align-items:center;justify-content:center;margin:0 0 1rem}
+.step{display:flex;align-items:center;gap:.5rem;font-size:.95rem;opacity:.7}
+.step.is-active{font-weight:600;opacity:1}
+.step .dot{width:.9rem;height:.9rem;border-radius:999px;border:2px solid #333}
+.step.is-active .dot{background:#333}
+
+/* cartes & encarts */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem 1.2rem;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.info{background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem}
+.label{font-weight:600;font-size:.92rem;margin-bottom:.35rem;display:block;color:#333}
+.help{font-size:.86rem;opacity:.75;margin-top:.35rem}
+
+/* choix radios en pilules */
+.radiolist{display:flex;flex-wrap:wrap;gap:.9rem}
+.radio-pill{display:flex;align-items:center;gap:.5rem;border:1px solid var(--border);background:#fff;border-radius:999px;padding:.5rem .9rem;cursor:pointer;transition:box-shadow .15s, background-color .15s}
+.radio-pill input{accent-color:var(--primary)}
+.radio-pill:hover{box-shadow:0 2px 8px rgba(0,0,0,.05);background:#fff}
+.radio-pill.wide{border-radius:12px;padding:.7rem .9rem;width:100%;justify-content:space-between}
+
+/* actions */
+.actions{display:flex;justify-content:center;gap:.6rem;margin-top:1rem}
+.button{appearance:none;border:0;border-radius:999px;padding:.75rem 1.2rem;background:var(--primary);color:#fff;cursor:pointer;transition:filter .15s, background-color .15s}
+.button:hover{filter:brightness(1.05)}
+.button.is-light{background:var(--primary-weak);color:#2e3656}
+.button.is-light:hover{background:#dde3f5}
+.button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:12px}
+
+/* mascotte : centrée, sans cadre */
+.owl{display:block;margin:.15rem auto .25rem;width:64px;height:auto;filter:drop-shadow(0 1px 0 rgba(0,0,0,.04))}
+
+/* petits détails */
+.shipping-meta{display:flex;gap:.6rem;align-items:center;font-size:.88rem;opacity:.8}
+.shipping-right{display:flex;align-items:center;gap:.6rem}
+.price{font-weight:700}
+.addr-box pre{margin:.25rem 0 0;white-space:pre-wrap;font-family:inherit}
+
+.error{border-color:#e9b5b5;background:#fff9f9;color:#7a1f1f}
+@media (max-width:720px){
+  .checkout-wrap{padding:.9rem}
+  .shipping-right{flex-direction:column;align-items:flex-end}
+}
+</style>
+
+<div class="checkout-wrap">
+  <!-- Stepper style Paiement -->
+  <div class="stepper">
+    <div class="step"><span class="dot"></span>Panier</div>
+    <div class="step is-active"><span class="dot"></span>Livraison</div>
+    <div class="step"><span class="dot"></span>Adresse</div>
+    <div class="step"><span class="dot"></span>Paiement</div>
+  </div>
+
+  <!-- Mascotte centrée -->
+  <img class="owl" src="/static/img/owl_login.png" alt="Chouette">
+
+  <h1 class="title">Étape&nbsp;1 — Livraison</h1>
+
+  <div class="info">
+    <div class="label">Choisissez un mode</div>
+    <div class="help">Si vous choisissez <strong>Retrait sur place</strong>, l’étape « Adresse » sera sautée et vous passerez directement au paiement.</div>
+  </div>
+
+  <!-- Formulaire -->
+  <form method="POST" action="/checkout/livraison" class="card" style="background:var(--paper);">
+    <!-- propagation / compat -->
+    <input type="hidden" name="ids" value="{% if ids %}{{ ids }}{% endif %}">
+    <input type="hidden" id="nextHidden" name="next" value="adresse">
+    <input type="hidden" name="adresseID" value="{% if adresseID %}{{ adresseID }}{% endif %}">
+    <input type="hidden" name="existing_adresse" value="{% if adresseID %}{{ adresseID }}{% endif %}">
+    <input type="hidden" name="l1"  value="{% if l1 %}{{ l1 }}{% endif %}">
+    <input type="hidden" name="l2"  value="{% if l2 %}{{ l2 }}{% endif %}">
+    <input type="hidden" name="ville" value="{% if ville %}{{ ville }}{% endif %}">
+    <input type="hidden" name="cp"   value="{% if cp %}{{ cp }}{% endif %}">
+    <input type="hidden" name="pays" value="{% if pays %}{{ pays }}{% endif %}">
+    <input type="hidden" id="modeHidden" name="mode" value="{% if mode %}{{ mode }}{% else %}sur_place{% endif %}">
+
+    <!-- champs cachés pour le point relais -->
+    <input type="hidden" name="pickup_id" id="pickup_id">
+    <input type="hidden" name="pickup_label" id="pickup_label">
+
+
+    <div class="label">Mode de livraison</div>
+    <div class="radiolist" id="livraisonRadios">
+      <label class="radio-pill">
+        <input type="radio" name="mode_livraison" value="sur_place"
+               {% if mode_sur_place or (not mode_livraison and not mode) %}checked{% endif %}>
+        Retrait sur place
+      </label>
+      <label class="radio-pill">
+        <input type="radio" name="mode_livraison" value="livraison"
+               {% if mode_livraison %}checked{% endif %}>
+        À domicile
+      </label>
+    </div>
+
+    <!-- ====== RÉCAP ADRESSE (visible en mode livraison) ====== -->
+    {% if mode_livraison %}
+      {% if addr_present %}
+        <div class="info addr-box" style="margin-top:1rem">
+          <div class="label">Adresse de livraison</div>
+          <pre>{{ adresse_txt }}</pre>
+          <div class="help">
+            <a href="/checkout/adresse?ids={% if ids %}{{ ids }}{% endif %}&next=payment&mode=livraison">Modifier l’adresse</a>
+          </div>
+        </div>
+      {% else %}
+        <div class="info error" style="margin-top:1rem">
+          <div class="label">Aucune adresse renseignée</div>
+          <div class="help">
+            Cliquez sur « Continuer » pour ajouter votre adresse à l’étape suivante.
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <!-- ====== OPTIONS DE LIVRAISON (transporteurs) ====== -->
+    {% if mode_livraison and addr_present %}
+      {% if shipping_error %}
+        <div class="info error">
+          <div class="label">Impossible de récupérer les tarifs</div>
+          <div class="help">{{ shipping_error }}</div>
+        </div>
+      {% endif %}
+
+      <div class="label" style="margin-top:.6rem">Choisissez un transporteur</div>
+
+      {% if shipping_options_count > 0 %}
+        <div class="radiolist" id="shippingOptions">
+          {% for o in shipping_options %}
+            <label class="radio-pill wide">
+              <span class="shipping-meta">
+                <input type="radio" name="shipping_id" value="{{ o.id }}"
+                       {% if forloop.first %}checked{% endif %}>
+                <strong>{{ o.label }}</strong>
+                {% if o.eta %}<span>• {{ o.eta }}</span>{% endif %}
+              </span>
+              <span class="shipping-right">
+                {% if o.provider %}<span class="help">{{ o.provider }}</span>{% endif %}
+                <span class="price">{{ o.price|price }}</span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+        <div class="help">Les frais de port seront ajoutés au récapitulatif à l’étape Paiement.</div>
+      {% else %}
+        <div class="info">
+          <div class="help">Aucune offre disponible pour cette adresse. Vous pourrez réessayer après avoir modifié l’adresse.</div>
+        </div>
+      {% endif %}
+
+      <!-- ====== BLOC COLISSIMO (sélection point relais) ====== -->
+      <div class="info" id="colissimo-block" style="margin-top:1rem">
+        <div class="label">Point relais Colissimo</div>
+        <div class="help">Optionnel&nbsp;: choisissez un point relais proche de votre adresse ci-dessus.</div>
+
+        <div style="display:flex;gap:.5rem;align-items:center;margin:.4rem 0 .2rem">
+          <button type="button" class="button is-light" id="coli-search">Choisir un point Colissimo</button>
+          <span id="coli-status" class="help"></span>
+        </div>
+
+        <table id="coli-table" style="width:100%;border-collapse:collapse;margin-top:.5rem;display:none">
+          <thead>
+          <tr>
+            <th style="border:1px solid var(--border);padding:6px;text-align:left">ID</th>
+            <th style="border:1px solid var(--border);padding:6px;text-align:left">Nom</th>
+            <th style="border:1px solid var(--border);padding:6px;text-align:left">Adresse</th>
+            <th style="border:1px solid var(--border);padding:6px;text-align:left">Type</th>
+            <th style="border:1px solid var(--border);padding:6px;text-align:left">Distance</th>
+            <th style="border:1px solid var(--border);padding:6px;text-align:left">Action</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div id="coli-selection" class="help" style="white-space:pre-wrap;margin-top:.4rem"></div>
+      </div>
+      <!-- ====== /BLOC COLISSIMO ====== -->
+    {% endif %}
+
+    <div class="actions">
+      <button type="submit" class="button">Continuer</button>
+      <button type="submit" class="button is-light"
+              formmethod="GET"
+              formaction="/panier?ids={% if ids %}{{ ids }}{% endif %}">⟵ Retour au panier</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  var modeHidden = document.getElementById('modeHidden');
+  var nextHidden = document.getElementById('nextHidden');
+  var radios = document.querySelectorAll('input[name="mode_livraison"]');
+  var shippingRadios = function(){ return document.querySelectorAll('input[name="shipping_id"]'); };
+  var shippingBlock = document.getElementById('shippingOptions');
+
+  function setShippingRequired(isRequired){
+    shippingRadios().forEach(function(r){ r.required = !!isRequired; });
+  }
+
+  function syncHidden(val){
+    if(modeHidden) modeHidden.value = val || 'sur_place';
+    if(nextHidden) nextHidden.value = (val === 'sur_place') ? 'payment' : 'adresse';
+    var hasOffers = !!shippingBlock && shippingRadios().length > 0;
+    setShippingRequired(val === 'livraison' && hasOffers);
+  }
+
+  var checked = document.querySelector('input[name="mode_livraison"]:checked');
+  syncHidden(checked ? checked.value : 'sur_place');
+
+  radios.forEach(function(r){
+    r.addEventListener('change', function(){ syncHidden(this.value); });
+  });
+
+  // ===== Colissimo (appelle le proxy) =====
+  var BTN = document.getElementById('coli-search');
+  if (BTN){
+    var STATUS = document.getElementById('coli-status');
+    var TABLE = document.getElementById('coli-table');
+    var TBODY = TABLE ? TABLE.querySelector('tbody') : null;
+    var OUT = document.getElementById('coli-selection');
+
+    var HID_ID    = document.getElementById('pickup_id');
+    var HID_LABEL = document.getElementById('pickup_label');
+
+
+    function valOf(sel){
+      var el = document.querySelector(sel);
+      return el ? (el.value || '') : '';
+    }
+
+    async function fetchColi(qs){
+      // App → route interne qui proxie vers le microservice
+      const r = await fetch('/api/colissimo/points?' + qs);
+      if (!r.ok) throw new Error('Colissimo indisponible');
+      return await r.json();
+    }
+
+    async function search(){
+      if (!TABLE || !TBODY) return;
+      STATUS.textContent = 'Recherche...';
+      OUT.textContent = '';
+      TBODY.innerHTML = '';
+      TABLE.style.display = 'none';
+
+      var address = valOf('input[name="l1"]') || '';
+      var zipCode = valOf('input[name="cp"]') || '';
+      var city    = (valOf('input[name="ville"]') || '').toUpperCase();
+      var country = (valOf('input[name="pays"]') || 'FR').toUpperCase();
+
+      if (!zipCode || !city){
+        STATUS.textContent = 'Complétez d\'abord l\'adresse.';
+        return;
+      }
+
+      var qs = new URLSearchParams({
+        address: address,
+        zipCode: zipCode,
+        city: city,
+        countryCode: country,
+        filterRelay: '1'
+      }).toString();
+
+      try{
+        var data = await fetchColi(qs);
+        if (data.errorCode !== 0) throw new Error(data.errorMessage || 'Erreur Colissimo');
+
+        var list = data.listePointRetraitAcheminement || [];
+        if (!list.length){ STATUS.textContent = 'Aucun point trouvé.'; return; }
+
+        STATUS.textContent = list.length + ' points trouvés.';
+        list.forEach(function(p){
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td style="border:1px solid var(--border);padding:6px">'+(p.identifiant||'')+'</td>'+
+            '<td style="border:1px solid var(--border);padding:6px">'+(p.nom||'')+'</td>'+
+            '<td style="border:1px solid var(--border);padding:6px">'+
+              [p.adresse1,p.adresse2,p.adresse3,(p.codePostal||''),(p.localite||'')].filter(Boolean).join(', ')+
+            '</td>'+
+            '<td style="border:1px solid var(--border);padding:6px">'+(p.typeDePoint||'')+'</td>'+
+            '<td style="border:1px solid var(--border);padding:6px">'+(p.distanceEnMetre ?? '')+'</td>'+
+            '<td style="border:1px solid var(--border);padding:6px">'+
+              '<button type="button" class="button is-light" '+
+              'data-id="'+(p.identifiant||'')+'" '+
+              'data-label="'+((p.nom||'')+', '+(p.adresse1||'')+', '+(p.codePostal||'')+' '+(p.localite||''))+'">Choisir</button>'+
+            '</td>';
+          TBODY.appendChild(tr);
+        });
+        TABLE.style.display = '';
+      }catch(err){
+        console.error(err);
+        STATUS.textContent = 'Erreur: ' + err.message;
+      }
+    }
+
+    BTN.addEventListener('click', search);
+
+    if (TBODY){
+      TBODY.addEventListener('click', function(e){
+        var b = e.target.closest('button[data-id]');
+        if (!b) return;
+        var id = b.getAttribute('data-id') || '';
+        var label = b.getAttribute('data-label') || '';
+        if (HID_ID) HID_ID.value = id;
+        if (HID_LABEL) HID_LABEL.value = label;
+        OUT.textContent = 'Point relais sélectionné → ' + id + ' — ' + label;
+      });
+    }
+  }
+  // ===== /Colissimo =====
+})();
+</script>
+
+{% endblock %}

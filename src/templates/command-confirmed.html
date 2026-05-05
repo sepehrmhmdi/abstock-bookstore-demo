@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Commande confirmée{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width: 840px;">
+    <div class="box" style="background-color:#fffade; border:1px solid #d6c7b0;">
+      <div class="has-text-centered">
+        <span style="font-size:3rem;">✅</span>
+        <h1 class="title is-4 mt-3" style="color:#6d2c2f;">Votre commande a bien été passée !</h1>
+
+        {% if order_id %}
+          <p class="mt-2">Numéro de commande : <strong style="color:#6d2c2f;">{{ order_id }}</strong></p>
+        {% endif %}
+
+        <p class="mt-2">Un email de confirmation vous a été envoyé.</p>
+      </div>
+
+      <hr>
+
+      <h2 class="title is-5">Coordonnées</h2>
+      <ul class="mb-3">
+        {% if name %}<li><strong>Nom/Prénom :</strong> {{ name }}</li>{% endif %}
+        {% if email %}<li><strong>Email :</strong> {{ email }}</li>{% endif %}
+        {% if phone %}<li><strong>Téléphone :</strong> {{ phone }}</li>{% endif %}
+      </ul>
+
+      <h2 class="title is-5">Options</h2>
+      <ul class="mb-3">
+        <li><strong>Moyen de paiement :</strong>
+          {% if payment %}{{ payment }}{% else %}Sur place{% endif %}
+        </li>
+        <li><strong>Livraison :</strong>
+          {% if delivery %}{{ delivery }}{% else %}retrait{% endif %}
+        </li>
+      </ul>
+
+      {% if message %}
+        <p class="mb-4"><em>Message :</em> {{ message }}</p>
+      {% endif %}
+
+      <h2 class="title is-5 mt-4">Articles</h2>
+      {% if cards %}
+        <table class="table is-fullwidth">
+          <thead>
+            <tr><th>Titre</th><th class="has-text-right">Prix</th></tr>
+          </thead>
+          <tbody>
+            {% for c in cards %}
+              <tr>
+                <td>{{ c.title }}</td>
+                <td class="has-text-right">{{ c.price|price }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th class="has-text-right">Total :</th>
+              <th class="has-text-right">{{ total|price }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      {% else %}
+        <p>Aucun article à afficher.</p>
+      {% endif %}
+
+      <div class="buttons is-right">
+        <a href="/" class="button">Continuer mes achats</a>
+        <a href="/mon-compte" class="button is-primary">Mon compte</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Vide le panier (local/session) après confirmation
+  (function clearBasketAndSession() {
+    try {
+      var storage = window.localStorage, session = window.sessionStorage;
+      if (storage) storage.removeItem("savedcardids");
+      if (session) session.removeItem("basket");
+      if (typeof setbasketqty === "function") setbasketqty();
+    } catch (e) { /* ignore */ }
+  })();
+</script>
+{% endblock %}

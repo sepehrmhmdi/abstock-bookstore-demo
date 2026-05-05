@@ -1,0 +1,199 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Pickup Point Search Demo</title>
+<style>
+  :root{--ink:#1f2328;--muted:#6a737d;--bd:#e5e7eb;--hl:#eef2ff;--btn:#3f4c73}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:980px;margin:20px auto;padding:0 14px;color:var(--ink)}
+  h1{font-size:28px;margin:6px 0 14px}
+  form{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end}
+  label{display:flex;flex-direction:column;font-size:12px;gap:4px}
+  input,select,button{padding:8px;border:1px solid var(--bd);border-radius:6px;font:inherit}
+  input:focus,select:focus,button:focus{outline:2px solid #c7d2fe;outline-offset:1px}
+  button{background:var(--btn);color:#fff;border:0;cursor:pointer}
+  button:hover{filter:brightness(1.05)}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{border:1px solid var(--bd);padding:8px;font-size:13px;vertical-align:top}
+  th{background:#f8fafc;text-align:left}
+  .small{font-size:12px;color:var(--muted)}
+  #status{margin-top:10px}
+  tr.is-selected{background:var(--hl)}
+  .addr{white-space:pre-line}
+  .is-embed body{max-width:100%;padding:0 8px}
+  .is-embed h1{display:none}
+</style>
+
+<h1>Pickup Point Search Demo</h1>
+
+<form id="f">
+  <label>Address
+    <input name="address" />
+  </label>
+  <label>Postal code
+    <input name="zipCode" />
+  </label>
+  <label>City
+    <input name="city" />
+  </label>
+  <label>Country
+    <input name="countryCode" />
+  </label>
+  <label>Weight (g)
+    <input name="weight" />
+  </label>
+  <label>Filter
+    <select name="filterRelay">
+      <option value="1">All pickup points</option>
+      <option value="0">Post offices only</option>
+      <option value="3">Relay points only</option>
+      <option value="5">Lockers only</option>
+    </select>
+  </label>
+  <button type="submit">Search</button>
+</form>
+
+<div id="status" class="small"></div>
+
+<table id="tbl" style="display:none">
+  <thead>
+    <tr>
+      <th style="width:90px">ID</th>
+      <th style="width:240px">Name</th>
+      <th>Address</th>
+      <th style="width:90px">Type</th>
+      <th style="width:110px">Distance (m)</th>
+      <th style="width:96px">Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<pre id="selection" class="small"></pre>
+
+<script>
+(function(){
+  const form = document.getElementById('f');
+  const tbl = document.getElementById('tbl');
+  const tbody = tbl.querySelector('tbody');
+  const status = document.getElementById('status');
+  const selection = document.getElementById('selection');
+
+  const qs = new URLSearchParams(location.search);
+  const EMBED = qs.get('embed') === '1' || qs.get('embed') === 'true';
+  if (EMBED) document.documentElement.classList.add('is-embed');
+
+  function setIf(name, val, fallback=''){
+    if (val==null || val==='') return;
+    form.elements[name].value = val || fallback;
+  }
+
+  function joinAddress(p){
+    const parts = [p.adresse1,p.adresse2,p.adresse3,[p.codePostal,p.localite].filter(Boolean).join(' ')];
+    return parts.filter(Boolean).join('\n');
+  }
+
+  function labelFor(p){
+    return (p.nom || '').trim() + ' – ' + [p.adresse1, p.localite].filter(Boolean).join(', ');
+  }
+
+  function clearRows(){
+    tbody.innerHTML = '';
+    tbl.style.display = 'none';
+  }
+
+  function showRows(){
+    tbl.style.display = '';
+  }
+
+  // neutral defaults
+  setIf('address', qs.get('l1') || qs.get('address') || '123 Example Street');
+  setIf('zipCode', qs.get('cp') || qs.get('zipCode') || '00000');
+  setIf('city', (qs.get('ville') || qs.get('city') || 'DEMO CITY').toUpperCase());
+  setIf('countryCode', (qs.get('pays') || qs.get('countryCode') || 'FR').toUpperCase());
+  setIf('weight', qs.get('weight') || '1000');
+
+  const filterAliased = qs.get('filter') || qs.get('filterRelay');
+  if (filterAliased) form.elements['filterRelay'].value = filterAliased;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    status.textContent = 'Loading...';
+    selection.textContent = '';
+    clearRows();
+
+    const fd = new FormData(form);
+    fd.set('city', (fd.get('city')||'').toUpperCase());
+    fd.set('countryCode', (fd.get('countryCode')||'FR').toUpperCase());
+    const query = new URLSearchParams(fd);
+
+    try {
+      const res = await fetch('/api/colissimo/points?' + query.toString());
+      const data = await res.json();
+
+      if (data.errorCode && Number(data.errorCode) !== 0) {
+        throw new Error((data.errorMessage || 'Error') + ' (code ' + data.errorCode + ')');
+      }
+
+      const list = data.listePointRetraitAcheminement || [];
+      if (!list.length) {
+        status.textContent = 'No pickup point found.';
+        return;
+      }
+
+      status.textContent = `${list.length} pickup points found.`;
+
+      list.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.identifiant}</td>
+          <td>${p.nom || ''}</td>
+          <td class="addr">${joinAddress(p)}</td>
+          <td>${p.typeDePoint || ''}</td>
+          <td>${p.distanceEnMetre ?? ''}</td>
+          <td><button type="button" data-id="${p.identifiant}">Select</button></td>
+        `;
+        tr.dataset.raw = JSON.stringify(p);
+        tbody.appendChild(tr);
+      });
+
+      showRows();
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  tbody.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-id]');
+    if (!btn) return;
+
+    tbody.querySelectorAll('tr').forEach(tr => tr.classList.remove('is-selected'));
+    const row = btn.closest('tr');
+    row.classList.add('is-selected');
+
+    const id = btn.getAttribute('data-id');
+    const raw = JSON.parse(row.dataset.raw || '{}');
+    const name = raw.nom || '';
+    const addr = joinAddress(raw);
+    const label = labelFor(raw);
+
+    const payload1 = { type:'colissimo:pudo:selected', id, code:id, label, name, address:addr, raw };
+    const payload2 = { source:'colissimo-widget', type:'pickup-selected', id, code:id, label, name, address:addr, raw };
+
+    try { window.parent.postMessage(payload1, '*'); } catch(_){}
+    try { window.parent.postMessage(payload2, '*'); } catch(_){}
+
+    selection.textContent = 'Selected: ' + JSON.stringify({ id, name, address: addr }, null, 2);
+  });
+
+  if (EMBED) {
+    const hasEnough =
+      (form.elements.address.value || '').trim() ||
+      ((form.elements.zipCode.value || '').trim() && (form.elements.city.value || '').trim());
+
+    if (hasEnough) {
+      form.dispatchEvent(new Event('submit', {cancelable:true}));
+    }
+  }
+})();
+</script>

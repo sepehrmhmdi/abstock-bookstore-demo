@@ -1,0 +1,5 @@
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (when (find-package :abstock)
+    (in-package :abstock)
+    (unless (boundp '*selection*)
+      (defparameter *selection* nil))))

@@ -1,0 +1,641 @@
+(defpackage abstock
+  (:use :cl
+        :sxql)
+  (:import-from :defclass-std
+                :defclass/std)
+  (:import-from :function-cache
+                :defcached)
+  (:import-from :access
+                :access)
+  (:import-from :serapeum
+                :dict)
+  (:export :main
+           :start))
+
+(in-package :abstock)
+
+;; Read Abelujo's database in memory.
+;; XXX: in-memory SQLite.
+
+;; Book objects must have:
+;; - title
+;; - authors' representation
+;; - price
+;; - publisher
+;; - ISBN
+;; - cover image url
+;; - shelf
+;;
+;; Optionally:
+;; - year published
+;; - details' url
+;; - summary
+;;
+;; Notes:
+;; A "card" is the generic name for a book.
+
+(defparameter *version* "0.11")          ; duplicated in .asd
+
+(defparameter *banner* "
+
+
+   ###    ########   ######  ########  #######   ######  ##    ##
+  ## ##   ##     ## ##    ##    ##    ##     ## ##    ## ##   ##
+ ##   ##  ##     ## ##          ##    ##     ## ##       ##  ##
+##     ## ########   ######     ##    ##     ## ##       #####
+######### ##     ##       ##    ##    ##     ## ##       ##  ##
+##     ## ##     ## ##    ##    ##    ##     ## ##    ## ##   ##
+##     ## ########   ######     ##     #######   ######  ##    ##
+
+
+")
+;; banner3 on http://www.patorjk.com/software/taag/#p=display&h=1&v=1&f=Banner3&t=ABStock
+
+(defparameter *verbose* nil)
+(defparameter *config* #P"config.lisp")
+(defparameter *post-config* #P"post-config.lisp")
+
+(defun find-config ()
+  (cond
+    ((uiop:file-exists-p (asdf:system-relative-pathname :abstock "config.lisp"))
+     (asdf:system-relative-pathname :abstock "config.lisp"))
+    ((uiop:file-exists-p *config*)
+     *config*)
+    (t
+     nil)))
+
+(defun find-post-config ()
+  (cond
+    ((uiop:file-exists-p *post-config*)
+     *post-config*)
+    (t
+     nil)))
+
+(defvar *contact-infos* '(:|email| "me@test.fr"
+                                :|phone| ""
+                                :|phone2| "")
+  "Private contact information, read from the config file `*config*'.")
+
+(defvar *secret-question* ""
+  "A question for the most simple anti-spam system when the user validates his basket.")
+(defvar *secret-answer* "")
+
+;; ─────────────────────────────────────────────
+;; Books DB (search_card… via DBI/SxQL) — unchanged
+;; ─────────────────────────────────────────────
+
+(defvar *connection* nil)
+(defvar *db-name* "db.db" "The DB name.")
+
+(defun get-db-name ()
+  "Get the db.db full path, relative to our installation"
+  (asdf:system-relative-pathname :abstock *db-name*))
+
+(defun connect ()
+  ;; needs to be run inside the directory of db.db
+  (if (uiop:file-exists-p (get-db-name))
+      (setf *connection*
+            (dbi:connect :sqlite3
+                         :database-name (get-db-name)))
+      (error "The DB file ~a does not exist." *db-name*)))
+
+(defvar *db-app-name* :abstock
+  "Where the DB comes from, usually an external application.")
+
+(defvar *cards* nil
+  "List of all books we display.")
+
+(defparameter *deposit-cards* nil
+  "The list of all cards in all deposits.")
+
+(defvar *old-cards* nil)
+(defvar *old-shelves* nil)
+(defvar *shelves* nil)
+(defvar *ignore-shelves-ids* nil
+  "Ignore (don't show) these shelves. See notes in code.")
+
+(defvar *ignore-shelves-starting-by* nil
+  "List of strings. Ignore the shelves whose name starts by one of them.")
+
+(defvar *page-length* 100
+  "Page length: number of elements per page to show.")
+
+(setf *print-length* 100)
+
+(defun load-init ()
+  "Read configuration variables (phone number, …) from the configuration file."
+  (let ((file (or (uiop:getenv "CONFIG")
+                  (find-config))))
+    (if file
+        (let ((*package* *package*))
+          (in-package abstock)
+          (load (uiop:native-namestring file)))
+        (format t "... no config file found.~&"))))
+
+(defun load-post-init ()
+  "Overwrite code from post-config if present."
+  (let ((file (or (uiop:getenv "POST_CONFIG")
+                  (find-post-config))))
+    (if file
+        (let ((*package* *package*))
+          (in-package abstock)
+          (uiop:format! t "~&Loading post-init file ~a~&" (uiop:native-namestring file))
+          (load (uiop:native-namestring file)))
+        (format t "... no post-config file found.~&"))))
+
+;; ─────────────────────────────────────────────
+;; SxQL queries for books (unchanged)
+;; ─────────────────────────────────────────────
+
+(defun query-card-by-id (id)
+  (select (:search_card.title
+           :search_card.price
+           :search_card.id
+           :search_card.isbn
+           :search_card.details_url
+           :search_card.cover
+           :search_card.quantity
+           :search_card.is_catalogue_selection
+           :search_card.summary
+           :search_card.width
+           :search_card.height
+           :search_card.thickness
+           :search_card.weight
+           :search_card.presedit
+           :search_card.meta
+           (:as :search_author.name :author)
+           (:as :search_author.bio :author_bio)
+           (:as :search_shelf.name :shelf)
+           (:as :search_publisher.name :publisher)
+           (:as :search_publisher.address :publisher_city))
+    (from :search_card
+          :search_author
+          :search_publisher
+          :search_shelf)
+    (join :search_card_authors
+          :on (:and (:= :search_card.id :search_card_authors.card_id)
+                    (:= :search_author.id :search_card_authors.author_id))
+          :on (:= :search_card.shelf :search_shelf.id))
+    (join :search_card_publishers
+          :on (:and (:= :search_card.id :search_card_publishers.card_id)
+                    (:= :search_publisher.id :search_card_publishers.publisher_id)))
+    (where (:= :search_card.id id))))
+
+(defun search-card (id)
+  (dbi:fetch (dbi:execute (dbi:prepare *connection* (yield (query-card-by-id id)))
+                          (list id))))
+
+(defun query-all-ids ()
+  (select (:search_card.id)
+    (from :search_card)))
+
+(defun get-all-ids ()
+  (dbi:fetch-all (dbi:execute (dbi:prepare *connection* (yield (query-all-ids))))))
+
+(defun query-card-by-isbn (isbn)
+  (select ((:distinct :search_card.id)
+           :search_card.created
+           :search_card.price
+           :search_card.title
+           :search_card.isbn
+           :search_card.details_url
+           :search_card.cover
+           :search_card.quantity
+           :search_card.is_catalogue_selection
+           :search_card.summary
+           :search_card.width
+           :search_card.height
+           :search_card.thickness
+           :search_card.weight
+           :search_card.presedit
+           :search_card.meta
+           (:as :search_author.name :author)
+           (:as :search_author.bio :author_bio)
+           (:as :search_shelf.name :shelf)
+           (:as :search_publisher.name :publisher)
+           (:as :search_publisher.address :publisher_city))
+    (from :search_card
+          :search_author
+          :search_publisher
+          :search_shelf)
+    (join :search_card_authors
+          :on (:and (:= :search_card.id :search_card_authors.card_id)
+                    (:= :search_author.id :search_card_authors.author_id))
+          :on (:= :search_card.shelf :search_shelf.id))
+    (join :search_card_publishers
+          :on (:and (:= :search_card.id :search_card_publishers.card_id)
+                    (:= :search_publisher.id :search_card_publishers.publisher_id)))
+    (where (:= :search_card.isbn isbn))))
+
+(defun search-isbn (isbn)
+  (dbi:fetch (dbi:execute (dbi:prepare *connection* (yield (query-card-by-isbn isbn)))
+                          (list isbn))))
+
+(defun query-all-cards (&key (order :desc))
+  (select ((:distinct :search_card.id)
+           :search_card.created
+           :search_card.title
+           :search_card.title_ascii
+           :search_card.price
+           :search_card.isbn
+           :search_card.cover
+           :search_card.details_url
+           :search_card.date_publication
+           :search_card.summary
+           :search_card.quantity
+           :search_card.is_catalogue_selection
+           :search_card.summary
+           :search_card.width
+           :search_card.height
+           :search_card.thickness
+           :search_card.weight
+           :search_card.presedit
+           :search_card.meta
+           (:as :search_author.name :author)
+           (:as :search_author.name_ascii :author_ascii)
+           (:as :search_author.bio :author_bio)
+           (:as :search_shelf.name :shelf)
+           (:as :search_shelf.id :shelf_id)
+           (:as :search_publisher.name :publisher)
+           (:as :search_publisher.name_ascii :publisher_ascii)
+           (:as :search_publisher.address :publisher_city))
+          (from :search_card
+                :search_author
+                :search_publisher)
+          (join :search_card_authors
+                :on (:and (:= :search_card.id :search_card_authors.card_id)
+                          (:= :search_author.id :search_card_authors.author_id)))
+          (left-join :search_shelf
+                     :on (:= :search_card.shelf_id :search_shelf.id))
+          (join :search_card_publishers
+                :on (:and (:= :search_card.id :search_card_publishers.card_id)
+                          (:= :search_publisher.id :search_card_publishers.publisher_id)))
+          (order-by `(,order :search_card.created))))
+
+(defun get-all-cards ()
+  (if (uiop:file-exists-p (get-db-name))
+      (let* ((query (dbi:execute (dbi:prepare *connection*
+                                              (yield (query-all-cards)))))
+             (cards (dbi:fetch-all query)))
+        (log:info "(re)loading the DB")
+        (setf *cards* (normalise-cards
+                       (remove-duplicated-cards
+                        (merge-cards-and-deposits cards
+                                                  (get-deposit-id/quantities)))))
+        t)
+      (warn "The DB file ~a does not exist. We can't load data from the DB.~&" *db-name*)))
+
+(defun query-deposit-ids/quantities ()
+  (select ((:distinct :search_card.id)
+           (:as :search_depositstatecopies.nb_current :nb_current_deposit))
+    (from :search_depositstatecopies
+          :search_depositstate)
+    (join :search_card
+          :on (:= :search_card.id :search_depositstatecopies.card_id))
+    (where (:and
+            (:= :search_depositstatecopies.deposit_state_id :search_depositstate.id)
+            (:is-null :search_depositstate.closed)))))
+
+(defun get-deposit-id/quantities ()
+  (let* ((query (dbi:execute
+                 (dbi:prepare *connection*
+                              (yield (query-deposit-ids/quantities))))))
+    (log:info "(re)loading the deposits")
+    (setf *deposit-cards* (dbi:fetch-all query))
+    (values *deposit-cards* (length *deposit-cards*))))
+
+(defun id/quantities-as-dict (deposit-cards)
+  (loop for elt in deposit-cards
+        with ht = (dict)
+        for id = (access elt :|id|)
+        for nb = (loop for plist in deposit-cards
+                       if (equal (access plist :|id|) id)
+                       sum (access plist :|nb_current_deposit|))
+        do (setf (gethash id ht) nb)
+        finally (return ht)))
+
+(defun merge-cards-and-deposits (cards deposit-cards)
+  (loop for card in cards
+        with id/nb = (id/quantities-as-dict deposit-cards)
+        for quantity = (access card :|quantity|)
+        for card_id = (access card :|id|)
+        for nb_current_deposit = (access id/nb card_id)
+        if (and quantity (plusp quantity)) collect card
+        else if (and nb_current_deposit (plusp nb_current_deposit)) collect card))
+
+(defun slugify-details-url (card)
+  (format nil "/livre/~a-~a" (access card :|id|)
+          (slug:slugify (access card :|title_ascii|))))
+
+(defun normalise-cards (cards)
+  (loop for card in cards
+        for title_ascii = (access card :|title_ascii|)
+        for author_ascii = (access card :|author_ascii|)
+        for publisher_ascii = (access card :|publisher_ascii|)
+        do (setf (getf card :|repr|)
+                 (str:downcase (str:concat title_ascii " " publisher_ascii)))
+        do (setf (getf card :|repr2|)
+                 (str:downcase (str:concat author_ascii " " title_ascii " " publisher_ascii)))
+        do (setf (getf card :|details_url|)
+                 (slugify-details-url card))
+        if (str:ends-with-p "epagine.fr/no_image.png" (access card :|cover|))
+          do (setf (access card :|cover|) nil)
+        collect card))
+
+(defun sort-cards-by-creation-date (cards)
+  (sort (copy-seq cards)
+        #'string-not-lessp
+        :key (lambda (it) (access it :|created|))))
+
+(defcached (last-created-cards :timeout (* 60 60)) (&key (n 20))
+  (subseq (sort-cards-by-creation-date *cards*) 0 n))
+
+;; ─────────────────────────────────────────────
+;; Shelves (unchanged)
+;; ─────────────────────────────────────────────
+
+(defun all-shelves ()
+  (select (:search_shelf.name
+           :search_shelf.id)
+    (from :search_shelf)))
+
+(defun get-all-shelves ()
+  (assert *connection*)
+  (let* ((query (dbi:prepare *connection* (yield (all-shelves))))
+         (query (dbi:execute query)))
+    (setf *shelves* (dbi:fetch-all query))
+    (setf *shelves* (filter-shelves *shelves*))
+    (setf *shelves* (remove-empty-shelves *shelves*))
+    (setf *shelves* (sort-shelves *shelves*))
+    (setf *shelves* (sort-shelves-by-number-prefix *shelves*)))
+  t)
+
+(defun shelf-name-matches-p (list-of-strings name)
+  (loop for string in list-of-strings
+        when (str:starts-with-p string name)
+        return t))
+
+(defun filter-shelves (shelves &key
+                                 (ids *ignore-shelves-ids*)
+                                 (names-starting-by *ignore-shelves-starting-by*))
+  (loop for shelf in shelves
+        unless (or (shelf-name-matches-p names-starting-by (access shelf :name))
+                   (find (access shelf :id) ids))
+        collect shelf))
+
+(defun remove-empty-shelves (shelves)
+  (let ((new-list '()))
+    (dolist (shelf shelves)
+      (if (find (access shelf :|id|)
+                *cards*
+                :key (lambda (it) (access it :|shelf_id|)))
+          (push shelf new-list)
+          (format t "This shelf is empty: ~a (~a)~&"
+                  (access shelf :|name|)
+                  (access shelf :|id|))))
+    (reverse new-list)))
+
+(defun sort-shelves (shelves)
+  #-sbcl
+  (progn
+    (log:warn "sorting shelves: only ASCII on this implementation.")
+    (normalize-shelves shelves))
+  #+sbcl
+  (sort (copy-seq shelves) #'sb-unicode:unicode< :key (lambda (it)
+                                                        (getf it :|name|))))
+
+(defun sort-shelves-by-number-prefix (shelves)
+  (sort (copy-seq shelves)
+        #'<
+        :key (lambda (it)
+               (let ((str-prefix (ppcre:scan-to-strings "^[0-9]+" (access it :name))))
+                 (or (ignore-errors (parse-float:parse-float str-prefix))
+                     -1)))))
+
+(defun normalize-shelves (shelves)
+  (loop for elt in (copy-seq shelves)
+        when (str:starts-with? "É" (getf elt :|name|))
+          do (setf (getf elt :|name|) (str:replace-all "É" "E" (getf elt :|name|))))
+  (sort shelves (lambda (x y) (string-lessp (getf x :|name|) (getf y :|name|)))))
+
+;; ─────────────────────────────────────────────
+;; Search & pagination (unchanged)
+;; ─────────────────────────────────────────────
+
+(defun key-function (it) (getf it :|isbn|))
+
+(defun search-by-isbn (cards isbn)
+  (find isbn cards :key #'key-function :test #'string-equal))
+
+(defun search-by-isbns (cards isbns)
+  (let (result collected-isbns)
+    (loop for card in cards
+          for card-isbn = (getf card :|isbn|)
+          for res-isbn = (when (isbn-p card-isbn)
+                           (find card-isbn isbns :test #'string-equal))
+          when res-isbn
+            do (progn
+                 (push res-isbn collected-isbns)
+                 (push card result)))
+    (values result
+            (set-difference isbns collected-isbns :test #'string-equal))))
+
+(defun search-cards (query &key shelf (page 1))
+  (when (stringp shelf)
+    (setf shelf (or (ignore-errors (parse-integer shelf))
+                    -1)))
+  (setf page (or (ignore-errors (parse-integer page)) 1))
+  (when (and (str:blank? query) (and shelf (minusp shelf)))
+    (let* ((results (get-cards))
+           (pagination (make-pagination :page page
+                                        :page-size *page-length*
+                                        :nb-elements (length results))))
+      (return-from search-cards
+        (values (get-page-items results pagination)
+                *page-length*
+                nil
+                pagination))))
+  (let* (isbns-not-found
+         (cards (if (and shelf (plusp shelf))
+                    (remove-if-not (lambda (card)
+                                     (= (or (getf card :|shelf_id|) -2) shelf))
+                                   (get-cards))
+                    (get-cards)))
+         (query-isbns (collect-isbns (split-query query)))
+         (result (if (not (str:blank? query))
+                     (cond
+                       (query-isbns
+                        (multiple-value-bind (res not-found)
+                            (search-by-isbns cards query-isbns)
+                          (setf isbns-not-found not-found)
+                          res))
+                       (t
+                        (let* ((query (slug:asciify query))
+                               (query (str:replace-all " " ".*" query)))
+                          (loop for card in cards
+                                for isbn = (getf card :|isbn|)
+                                for repr = (getf card :|repr|)
+                                for repr2 = (getf card :|repr2|)
+                                when (or (string-equal (str:remove-punctuation query :replacement "") isbn)
+                                         (ppcre:scan query repr)
+                                         (ppcre:scan query repr2))
+                                  collect card))))
+                     cards)))
+    (let ((pagination (make-pagination :page page
+                                       :page-size *page-length*
+                                       :nb-elements (length result))))
+      (format t "Found: ~a. Pagination: ~S ~&" (length result) pagination)
+      (values (get-page-items result pagination)
+              (length result)
+              isbns-not-found
+              pagination))))
+
+(defun get-page-items (elements pagination)
+  (assert (hash-table-p pagination) nil
+          "the pagination object is expected to be a hash table.")
+  (let* ((page (or (gethash :page pagination 1) 1))
+         (start (max 0 (* (1- page) (gethash :page-size pagination 200))))
+         (end (* page (gethash :page-size pagination 200))))
+    (when (> start end) (return-from get-page-items nil))
+    (when (> start (gethash :nb-elements pagination)) (return-from get-page-items nil))
+    (alexandria-2:subseq* elements start end)))
+
+(defun save (&key (file "cards.lisp"))
+  "Save cards and shelves on file."
+  (when *cards*
+    (with-open-file (f file
+                       :direction :output
+                       :if-does-not-exist :create
+                       :if-exists :supersede)
+      (let ((*print-pretty* nil)
+            (*print-length* nil))
+        (format f "~s~&" *cards*)))
+    (format t "~&Cards saved on ~s.~&" file))
+  (when *shelves*
+    (with-open-file (f "shelves.lisp"
+                       :direction :output
+                       :if-does-not-exist :create
+                       :if-exists :supersede)
+      (let ((*print-pretty* nil)
+            (*print-length* nil))
+        (format f "~s~&" *shelves*)
+        (format t "~&Shelves saved on ~s.~&" "shelves.lisp")))))
+
+(defun reload-cards (&key (file "cards.lisp-expr") (file-shelves "shelves.lisp-expr"))
+  "Reload saved cards from file."
+  (if (uiop:file-exists-p file)
+      (progn
+        (setf *old-cards* *cards*)
+        (setf *cards* (uiop:read-file-form file)))
+      (format t "~&The file ~s doesn't exist.~&" file))
+  (if (uiop:file-exists-p file-shelves)
+      (progn
+        (setf *old-shelves* *shelves*)
+        (setf *shelves* (uiop:read-file-form file-shelves)))
+      (format t "~&The file ~s doesn't exist.~&" file-shelves)))
+
+(defun help ()
+  "To use in the REPL."
+  (format t "~%Useful functions:~&")
+  (format t "  - (reload-cards)~& ~
+  - (load-init)~& ~
+  - (load-post-init)~& ~
+  - (read-selection)~& ~
+  - (connect)~& ~
+  - (load \"src/abstock.lisp\")~&"))
+
+(defun quit (&key (save t) (file "cards.lisp-expr"))
+  "Quit and save cards on disk, for faster restarts."
+  (when save (save :file file))
+  (uiop:quit 0))
+
+(defun schedule-db-reload ()
+  "Reload the DB regularly. By default, each night at 4am."
+  (cl-cron:make-cron-job #'get-all-cards :minute 30 :hour 4)
+  (cl-cron:make-cron-job #'get-all-shelves :minute 30 :hour 4)
+  (log:info "Scheduled a DB reload.")
+  (cl-cron:start-cron))
+
+(defun run-app-from-shell ()
+  "Start the app and keep the web server running."
+  (handler-case
+      (progn
+        (start)
+        (bt:join-thread
+         (find-if (lambda (th)
+                    (search "hunchentoot" (bt:thread-name th)))
+                  (bt:all-threads))))
+    #+sbcl
+    (sb-sys:interactive-interrupt () (progn
+                                       (format *error-output* "User abort. Bye!~&")
+                                       (uiop:quit)))
+    #+sbcl
+    (error (c) (format *error-output* "~&An error occured: ~A~&" c))
+    #-sbcl
+    (error (c) (format *error-output* "~&Quitting:  ~A~&" c))))
+
+(defun print-system-info (&optional (stream t))
+  (format stream "~&OS: ~a ~a~&" (software-type) (software-version))
+  (format stream "~&Lisp: ~a ~a~&" (lisp-implementation-type) (lisp-implementation-version))
+  #+asdf
+  (format stream "~&ASDF: ~a~&" (asdf:asdf-version))
+  #-asdf
+  (format stream "NO ASDF!")
+  #+quicklisp
+  (format stream "~&Quicklisp: ~a~&" (ql-dist:all-dists))
+  #-quicklisp
+  (format stream "!! Quicklisp is not installed !!"))
+
+(defun main ()
+  "Entry point of the executable."
+  (opts:define-opts
+    (:name :help     :description "print this help and exit" :short #\h :long "help")
+    (:name :version  :description "print the version and exit" :short #\v :long "version")
+    (:name :verbose  :description "print debug logs" :short #\V :long "verbose")
+    (:name :pid      :description "A filename to store the PID" :short #\p :arg-parser #'identity :long "pid"))
+  (handler-case 
+      (multiple-value-bind (options) (opts:get-opts)
+        (when (getf options :help)
+          (format t *banner*)
+          (opts:describe :prefix "ABStock usage:" :args "[keywords]")
+          (uiop:quit))
+        (when (getf options :version)
+          (format t "ABStock version ~a" *version*)
+          (print-system-info)
+          (uiop:quit))
+        (format t *banner*)
+        (when (getf options :verbose) (print-system-info))
+        (when (getf options :pid) (save-pid (getf options :pid)))
+        (run-app-from-shell))
+    (opts:unknown-option (c)
+      (format t "~%~a~%~%" c)
+      (opts:describe :prefix "ABStock usage:" :args "[keywords]"))))
+
+;; ─────────────────────────────────────────────
+;; Optional helpers for commande.db via DBI (no conflicts with web.lisp)
+;; NOTE: web.lisp already handles login/signup via the :sqlite package.
+;; Keep these only if some other module wants DBI access to commande.db.
+;; ─────────────────────────────────────────────
+
+(defparameter *commande-db-name* "commande.db"
+  "DB contenant les utilisateurs/clients.")
+
+(defun get-commande-db-name ()
+  "Get the commande.db full path, relative to our installation."
+  (asdf:system-relative-pathname :abstock *commande-db-name*))
+
+(defvar *commande-connection* nil)
+
+(defun connect-commande-db ()
+  (if (uiop:file-exists-p (get-commande-db-name))
+      (setf *commande-connection*
+            (dbi:connect :sqlite3 :database-name (get-commande-db-name)))
+      (error "La base commande.db n'existe pas à l'endroit attendu.")))
+
+(defun check-login-commande (email password)
+  "Check a user in commande.db using DBI (client table). Prefer web.lisp login."
+  (let* ((sql "SELECT clientID, prenom, nom, email, telephone
+                 FROM client WHERE email = ? AND mdp = ?")
+         (stmt (dbi:prepare *commande-connection* sql))
+         (res  (dbi:fetch (dbi:execute stmt (list email password)))))
+    res))

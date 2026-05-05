@@ -1,0 +1,155 @@
+{# ───────────────── connecté : récap + confirmation ───────────────── #}
+{% if prefill_name or prefill_email or prefill_phone %}
+<div class="box">
+  {% if form_errors %}
+    <article class="message is-danger">
+      <div class="message-body">
+        <ul>
+          {% for e in form_errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+      </div>
+    </article>
+  {% endif %}
+
+  <h4 class="title is-5 mb-4">Finaliser avec mes infos</h4>
+
+  <div class="content mb-3">
+    <ul>
+      {% if prefill_name %}<li><strong>Nom/Prénom :</strong> {{ prefill_name }}</li>{% endif %}
+      {% if prefill_email %}<li><strong>Email :</strong> {{ prefill_email }}</li>{% endif %}
+      {% if prefill_phone %}<li><strong>Téléphone :</strong> {{ prefill_phone }}</li>{% endif %}
+    </ul>
+    <p class="is-size-7">
+      <a href="/mon-compte/editer?retour={{ retour_url }}">Modifier mes infos</a>
+    </p>
+  </div>
+
+  <form action="/panier" method="post">
+    <input type="hidden" name="ids" value="{{ ids }}">
+    <input type="hidden" name="name"  value="{{ prefill_name }}">
+    <input type="hidden" name="email" value="{{ prefill_email }}">
+    <input type="hidden" name="phone" value="{{ prefill_phone }}">
+
+    <div class="field">
+      <label class="label">Moyen de paiement</label>
+      <div class="control">
+        <div class="select is-fullwidth">
+          <select name="payment" required>
+            <option value="carte">Carte</option>
+            <option value="sur-place">Sur place</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Message (optionnel)</label>
+      <div class="control">
+        {% if form_data and form_data.message %}
+          <textarea class="textarea" name="message" rows="3">{{ form_data.message }}</textarea>
+        {% else %}
+          <textarea class="textarea" name="message" rows="3" placeholder="Un mot pour le libraire …"></textarea>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Anti-spam NON affiché pour les connectés #}
+
+    <button class="button is-primary is-fullwidth" type="submit">
+      Confirmer et envoyer
+    </button>
+  </form>
+</div>
+
+{# ───────────────── non connecté : formulaire complet ───────────────── #}
+{% else %}
+<form action="/panier" method="post" class="box" id="basketValidationForm">
+  {% if form_errors %}
+    <article class="message is-danger">
+      <div class="message-body">
+        <ul>
+          {% for e in form_errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+      </div>
+    </article>
+  {% endif %}
+
+  <input type="hidden" name="ids" value="{{ ids }}">
+  <input type="hidden" name="antispam_expected" value="{{ antispam_expected }}">
+
+  <h4 class="title is-5 mb-4">Finaliser ma commande</h4>
+
+  <div class="field">
+    <label class="label">Nom / Prénom</label>
+    <div class="control">
+      {% if form_data and form_data.name %}
+        <input class="input" type="text" name="name" required value="{{ form_data.name }}">
+      {% else %}
+        <input class="input" type="text" name="name" required>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">Email</label>
+    <div class="control">
+      {% if form_data and form_data.email %}
+        <input class="input" type="email" name="email" value="{{ form_data.email }}">
+      {% else %}
+        <input class="input" type="email" name="email">
+      {% endif %}
+    </div>
+    <p class="help">Email ou téléphone au moins.</p>
+  </div>
+
+  <div class="field">
+    <label class="label">Téléphone</label>
+    <div class="control">
+      {% if form_data and form_data.phone %}
+        <input class="input" type="tel" name="phone" value="{{ form_data.phone }}">
+      {% else %}
+        <input class="input" type="tel" name="phone">
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">Message (optionnel)</label>
+    <div class="control">
+      {% if form_data and form_data.message %}
+        <textarea class="textarea" name="message" rows="3">{{ form_data.message }}</textarea>
+      {% else %}
+        <textarea class="textarea" name="message" rows="3" placeholder="Un mot pour le libraire …"></textarea>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">Moyen de paiement</label>
+    <div class="control">
+      <div class="select is-fullwidth">
+        <select name="payment" required>
+            <option value="carte">Carte</option>
+            <option value="sur-place">Sur place</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="label">{{ antispam_question }}</label>
+    <div class="control">
+      <input class="input" type="text" name="antispam" required>
+    </div>
+    <p class="help is-info">Cette question nous aide à éviter le spam.</p>
+  </div>
+
+  <button class="button is-primary is-fullwidth" type="submit">
+    Envoyer ma commande
+  </button>
+
+  <p class="is-size-7 has-text-centered mt-2">
+    Déjà client ? <a href="/connexion?retour={{ retour_url }}">Connectez-vous</a>
+  </p>
+</form>
+{% endif %}

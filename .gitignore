@@ -1,0 +1,7 @@
+.env
+db.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.log
+.DS_Store

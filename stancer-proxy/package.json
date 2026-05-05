@@ -1,0 +1,14 @@
+{
+  "name": "stancer-proxy",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.5",
+    "morgan": "^1.10.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="hero-content">
+    <!-- Texte + recherche -->
+    <div class="hero-text">
+      <h1 class="title is-2 has-text-weight-bold">Bienvenue !</h1>
+      <p class="subtitle">Découvrez notre sélection de livres rares et anciens, soigneusement choisis pour vous.</p>
+
+<form class="search-bar-fancy" method="GET" action="/search">
+  <div class="search-wrapper">
+    <div class="select-container">
+      <select name="rayon">
+        <option value="all" {% if rayon == "all" %}selected{% endif %}>Tous</option>
+        <option value="titre" {% if rayon == "titre" %}selected{% endif %}>Titre</option>
+        <option value="auteur" {% if rayon == "auteur" %}selected{% endif %}>Auteur</option>
+        <option value="editeur" {% if rayon == "editeur" %}selected{% endif %}>Éditeur</option>
+      </select>
+    </div>
+    <input type="text" name="q" class="search-input" placeholder="Rechercher dans la librairie..." value="{{ q }}">
+    <button type="submit" class="search-button">
+      <i class="fas fa-search"></i><span>Chercher</span>
+    </button>
+  </div>
+</form>
+
+    </div>
+
+    <!-- Image -->
+    <div class="hero-image-container">
+      <img src="/static/img/librairie.jpg" alt="Librairie" class="hero-image">
+    </div>
+  </div>
+</section>
+
+<!-- SECTION NOUVEAUX LIVRES -->
+<section class="section nouveaux-livres-section">
+  <div class="container">
+    <h2 class="title is-4">Nouveaux livres</h2>
+    <div class="swiper-container nouveaux-livres-slider">
+      <div class="swiper-wrapper">
+        {% for livre in nouveaux_livres %}
+        <div class="swiper-slide">
+          <div class="box">
+            <figure class="image is-4by3">
+              <img src="{{ livre.image_url }}" alt="{{ livre.titre }}">
+            </figure>
+            <h3 class="subtitle is-6 mt-2">{{ livre.titre }}</h3>
+            <p><strong>Auteur :</strong> {{ livre.auteur }}</p>
+            <a href="/livre/{{ livre.id }}" class="button is-small is-link mt-2">Voir</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION MEILLEURES VENTES -->
+<section class="section meilleurs-ventes-section">
+  <div class="container">
+    <h2 class="title is-4">Meilleures ventes</h2>
+    <div class="swiper-container meilleures-ventes-slider">
+      <div class="swiper-wrapper">
+        {% for livre in meilleures_ventes %}
+        <div class="swiper-slide">
+          <div class="box">
+            <figure class="image is-4by3">
+              <img src="{{ livre.image_url }}" alt="{{ livre.titre }}">
+            </figure>
+            <h3 class="subtitle is-6 mt-2">{{ livre.titre }}</h3>
+            <p><strong>Auteur :</strong> {{ livre.auteur }}</p>
+            <a href="/livre/{{ livre.id }}" class="button is-small is-link mt-2">Voir</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION À PARAÎTRE -->
+<section class="section a-paraitre-section">
+  <div class="container">
+    <h2 class="title is-4">À paraître</h2>
+    <div class="swiper-container a-paraitre-slider">
+      <div class="swiper-wrapper">
+        {% for livre in a_paraitre %}
+        <div class="swiper-slide">
+          <div class="box">
+            <figure class="image is-4by3">
+              <img src="{{ livre.image_url }}" alt="{{ livre.titre }}">
+            </figure>
+            <h3 class="subtitle is-6 mt-2">{{ livre.titre }}</h3>
+            <p><strong>Auteur :</strong> {{ livre.auteur }}</p>
+            <a href="/livre/{{ livre.id }}" class="button is-small is-link mt-2">Voir</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Navigation Swiper -->
+<div class="swiper-button-next"></div>
+<div class="swiper-button-prev"></div>
+
+<!-- Swiper JS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+  document.querySelectorAll('.swiper-container').forEach(container => {
+    new Swiper(container, {
+      slidesPerView: 3,
+      spaceBetween: 30,
+      loop: true,
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      breakpoints: {
+        768: { slidesPerView: 2 },
+        1024: { slidesPerView: 3 }
+      }
+    });
+  });
+</script>
+
+<!-- Style personnalisé -->
+<style>
+  .hero-section {
+    height: 100vh;
+    background: #f4e8d4;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  body.dark-mode .hero-section {
+    background: #3e2c41;
+  }
+
+  .hero-content {
+    display: flex;
+    flex: 1;
+    height: 100%;
+  }
+
+  .hero-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem;
+    min-height: 100%;
+  }
+
+  .hero-text h1 {
+    color: #382744;
+  }
+
+  .hero-text .subtitle {
+    color: #555;
+    font-size: 1.2rem;
+    margin-top: 1rem;
+  }
+
+  body.dark-mode .hero-text h1,
+  body.dark-mode .hero-text .subtitle {
+    color: #eee;
+  }
+
+  .search-bar-fancy .search-wrapper {
+    display: flex;
+    background: white;
+    border-radius: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+    max-width: 650px;
+    width: 100%;
+    margin-top: 2rem;
+  }
+
+  .select-container select {
+    border: none;
+    background: transparent;
+    padding: 0 1rem;
+    font-weight: 500;
+    color: #382744;
+    height: 48px;
+    appearance: none;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    padding: 0 1rem;
+    height: 48px;
+    outline: none;
+    color: #382744;
+    background: transparent;
+  }
+
+  .search-button {
+    background-color: #382744;
+    color: white;
+    padding: 0 1.5rem;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .search-button:hover {
+    background-color: #4e3766;
+  }
+
+  .hero-image-container {
+    flex: 1;
+    position: relative;
+    clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%);
+    height: 100%;
+  }
+
+  .hero-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .swiper-slide .box {
+    background-color: #fff;
+    border: 1px solid #dcd2c0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1rem;
+  }
+
+  body.dark-mode .swiper-slide .box {
+    background-color: #4b3b4f;
+    border-color: #6a5a6e;
+  }
+
+  .swiper-button-next, .swiper-button-prev {
+    color: #382744;
+  }
+
+  body.dark-mode .swiper-button-next, body.dark-mode .swiper-button-prev {
+    color: #eee;
+  }
+
+  .button.is-link {
+    background-color: #382744;
+    color: #fff;
+  }
+
+  .button.is-link:hover {
+    background-color: #4e3766;
+  }
+
+  body.dark-mode .button.is-link {
+    background-color: #291d32;
+  }
+
+  @media (max-width: 768px) {
+    .hero-section {
+      flex-direction: column;
+      height: auto;
+    }
+
+    .hero-image-container {
+      clip-path: none;
+      height: 250px;
+    }
+
+    .hero-image {
+      position: relative;
+    }
+
+    .hero-text {
+      padding: 2rem;
+    }
+
+    .search-wrapper {
+      flex-direction: column;
+    }
+
+    .search-button {
+      justify-content: center;
+    }
+  }
+
+  .nouveaux-livres-section,
+  .meilleurs-ventes-section,
+  .a-paraitre-section {
+    background-color: #f0eae1;
+    color: #332e2a;
+    border-top: 1px solid #dcd2c1;
+    min-height: 520px;
+  }
+
+  body.dark-mode .nouveaux-livres-section,
+  body.dark-mode .meilleurs-ventes-section,
+  body.dark-mode .a-paraitre-section {
+    background-color: #312f31;
+    color: #e8e5e3;
+    border-top: 1px solid #3f3f46;
+  }
+
+  .swiper-container {
+    min-height: 480px;
+  }
+
+  .swiper-slide .box {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+</style>
+{% endblock %}

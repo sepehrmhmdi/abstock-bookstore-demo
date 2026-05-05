@@ -1,0 +1,50 @@
+# DEV
+
+- Jan, 2023: stopped hardcoding the € symbol. Handle different currencies.
+  - see currencies.lisp's docstring.
+- fixed: in some cases we could display books that were not in stock and not in deposits. We fixed the deposit quantity calculation.
+
+# v0.11, April, 2022
+
+- added **pagination** to all pages.
+- fixed display order: **most recent book first**.
+- added the ability to **fetch the summary of books online**, asynchronously: if `*fetch-summaries*` is `t` in `config.lisp`, try to find the book summary on an internet source.
+- filter out **empty shelves** and don't display them in the select dropdown.
+- changes and additions to the API to work with an external website that displays the books catalogue.
+  - add a **search API**: `/api/v1/search.json?query=foo`, with a 5min cache.
+- added a simple **admin page** to edit the front page texts:
+  - when you start the app, it will tell you the URL, of the form `/5453ca7c-734f-5089-ad1a-b7d250f176-admin`. It is unique and re-generated at each startup, unless you save it into the config file: `(setf *admin-uuid* "uuid")` (sans the "-admin" part). You must also set an API token, see the developer documentation.
+  - we use the Stylo rich text editor
+  - for development: a variable allows to not use the content saved from this page: `*use-admin-custom-texts*`.
+- added: we now also show the cards that were in deposits (in the Abelujo DB).
+
+# v0.10, July, 2021
+
+- added: we fetch more fields from the Abelujo DB, including new ones, like `meta`. Requires an Abelujo update from July, 10th.
+- added: new API /api/v1/search.json?query=, cached for 5 minutes.
+
+# v0.9 - May, 2021
+
+- custom themes:
+  - full themes support: all templates can be overwritten.
+  - load a custom theme.js
+  - load a custom theme.css
+- new API to get the selection and the last created cards.
+- get the selection from DB (not only from the CSV)
+- serve static assets under static/
+- email: format phone numbers.
+- CLI: added -v, -h and --pid flags.
+- set up CI, build binaries for Debian 10 (experimental).
+
+# v0.8 - Septembre, 2020
+
+- card page: show cards of the same shelf.
+- ignore shelves by ids or by name prefixes.
+- sort correctly with accents and unicode strings on SBCL (not on CCL).
+- beautify URLs (card id + title slug)
+- added post-config.lisp
+- 404 page
+
+# v0.7
+
+initial release.

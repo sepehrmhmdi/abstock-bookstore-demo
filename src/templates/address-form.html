@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if mode == "edit" %}Éditer l'adresse{% else %}Nouvelle adresse{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:720px;margin:0 auto;">
+  <h1 class="title is-3">{% if mode == "edit" %}Éditer l'adresse{% else %}Nouvelle adresse{% endif %}</h1>
+
+  {% if error %}
+    <div class="notification is-danger">{{ error }}</div>
+  {% endif %}
+
+  {# on passe toujours un :adresse_id au template côté GET edit #}
+  {% if mode == "edit" %}
+    <form action="/mon-compte/adresses/{{ adresse_id }}/editer" method="post" novalidate>
+  {% else %}
+    <form action="/mon-compte/adresses/nouvelle" method="post" novalidate>
+  {% endif %}
+
+    <div class="field">
+      <label class="label">Ligne 1 *</label>
+      <div class="control">
+        <input class="input" name="ligne1" required
+               value="{{ ligne1 }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Ligne 2</label>
+      <div class="control">
+        <input class="input" name="ligne2" value="{{ ligne2 }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Ville *</label>
+      <div class="control">
+        <input class="input" name="ville" required value="{{ ville }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Code postal *</label>
+      <div class="control">
+        <!-- IMPORTANT: type="text" pour conserver les zéros initiaux -->
+        <input class="input"
+               type="text"
+               name="code_postal"
+               id="code_postal"
+               inputmode="numeric"
+               pattern="[0-9A-Za-z\- ]{4,10}"
+               maxlength="10"
+               autocomplete="postal-code"
+               placeholder="ex : 01630"
+               required
+               value="{{ code_postal }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Pays *</label>
+      <div class="control">
+        <input class="input" name="pays" required value="{{ pays|default:'France' }}">
+      </div>
+    </div>
+
+    <div class="field is-grouped">
+      <p class="control"><a href="/mon-compte" class="button is-light">Annuler</a></p>
+      <p class="control"><button class="button is-link" type="submit">Enregistrer</button></p>
+    </div>
+  </form>
+</section>
+
+<script>
+  // hard-stop: empêcher toute conversion numérique de CP côté front
+  const cp = document.getElementById('code_postal');
+  if (cp) {
+    cp.addEventListener('input', () => {
+      cp.value = (cp.value ?? '').toString(); // reste une chaîne
+    });
+  }
+</script>
+{% endblock %}

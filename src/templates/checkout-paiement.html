@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Paiement{% endblock %}
+{% block content %}
+
+<style>
+:root{--primary:#3f4c73;--primary-weak:#e6eaf7;--ink:#2b2b2b;--paper:#fffdf3;--border:#e6ddc7}
+.checkout-wrap{max-width:900px;margin:0 auto;padding:1.2rem}
+h1.title{font-size:1.35rem;margin:.2rem 0 .8rem;text-align:center;color:var(--ink);font-weight:600}
+.stepper{display:flex;gap:.75rem;align-items:center;justify-content:center;margin:0 0 1rem}
+.step{display:flex;align-items:center;gap:.5rem;font-size:.95rem;opacity:.7}
+.step.is-active{font-weight:600;opacity:1}
+.step .dot{width:.9rem;height:.9rem;border-radius:999px;border:2px solid #333}
+.step.is-active .dot{background:#333}
+.card{background:#fff;padding:1rem 1.2rem;border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.label{font-weight:600;font-size:.92rem;margin-bottom:.25rem;display:block;color:#333}
+.help{font-size:.85rem;opacity:.75;margin-top:.35rem}
+.message{background:#ffe9e9;border:1px solid #f3b5b5;border-radius:10px;padding:.7rem .9rem;margin:.8rem 0}
+.recap-grid{display:grid;grid-template-columns:1fr 260px;gap:14px}
+@media (max-width:720px){.recap-grid{grid-template-columns:1fr}}
+
+.table{width:100%;border-collapse:separate;border-spacing:0 .35rem}
+.tr{display:grid;grid-template-columns:1fr auto;gap:.75rem;align-items:center}
+.tr .k{opacity:.8}
+.tr .v{font-variant-numeric:tabular-nums}
+.total{font-weight:700;border-top:1px solid var(--border);padding-top:.6rem;margin-top:.25rem}
+.radio-row{display:flex;flex-wrap:wrap;gap:1rem}
+.radio-pill{display:flex;align-items:center;gap:.45rem;border:1px solid var(--border);border-radius:999px;padding:.5rem .9rem;background:#fff;cursor:pointer;transition:box-shadow .15s, background-color .15s}
+.radio-pill input{accent-color:var(--primary)}
+.radio-pill[disabled], .radio-pill input:disabled{opacity:.6;cursor:not-allowed}
+.radio-pill:hover{box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.actions{display:flex;justify-content:center;gap:.6rem;margin-top:1rem}
+.button{appearance:none;border:0;border-radius:999px;padding:.75rem 1.2rem;background:var(--primary);color:#fff;cursor:pointer;transition:filter .15s,background-color .15s,color .15s}
+.button:hover{filter:brightness(1.05);color:#fff}
+.button.is-light{background:var(--primary-weak);color:#2e3656}
+.button.is-light:hover{background:#dde3f5}
+.button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:12px}
+.owl{display:block;margin:.15rem auto .25rem;width:64px;height:auto;filter:drop-shadow(0 1px 0 rgba(0,0,0,.04))}
+.badge{display:inline-block;padding:.15rem .5rem;border:1px solid var(--border);border-radius:999px;background:#fff;font-size:.82rem}
+.muted{opacity:.75}
+
+/* ► MISE EN AVANT DU RELAIS */
+.relay-box{border:1px dashed #b8d5ff;background:#f4f9ff;border-radius:10px;padding:.6rem .8rem}
+.relay-title{font-weight:700;margin-bottom:.2rem;display:flex;align-items:center;gap:.4rem}
+.relay-title .pill{background:#eef3ff;border:1px solid #d7e1ff;border-radius:999px;padding:.1rem .5rem;font-size:.8rem}
+.relay-addr{line-height:1.25}
+.right-note{font-size:.85rem;opacity:.9}
+.right-note strong{font-weight:700}
+</style>
+
+<div class="checkout-wrap">
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step"><span class="dot"></span>Panier</div>
+    <div class="step"><span class="dot"></span>Livraison</div>
+    <div class="step"><span class="dot"></span>Adresse</div>
+    <div class="step is-active"><span class="dot"></span>Paiement</div>
+  </div>
+
+  <!-- Mascotte -->
+  <img class="owl" src="/static/img/owl_login.png" alt="Chouette">
+
+  <h1 class="title">Étape 3 — Paiement</h1>
+
+  <!-- Récap adresse + mode -->
+  <div class="card">
+    <div class="recap-grid">
+      <div>
+        <div class="label">
+          {% if is_relay %}Point relais choisi{% else %}Adresse{% endif %}
+        </div>
+
+        {% if is_relay %}
+          <div class="relay-box">
+            <div class="relay-title">
+              <span class="pill">Point Relais</span>
+              <span>{{ pickup_label|default:relay_label }}</span>
+            </div>
+            <div class="relay-addr">
+              {% if l1 %}{{ l1 }}<br>{% endif %}
+              {% if l2 %}{{ l2 }}<br>{% endif %}
+              {% if cp or ville %}{% if cp %}{{ cp }} {% endif %}{{ ville }}<br>{% endif %}
+              {% if pays %}{{ pays }}{% endif %}
+            </div>
+          </div>
+        {% else %}
+          {% if l1 %}<div>{{ l1 }}</div>{% endif %}
+          {% if l2 %}<div>{{ l2 }}</div>{% endif %}
+          {% if cp or ville %}<div>{% if cp %}{{ cp }} {% endif %}{{ ville }}</div>{% endif %}
+          {% if pays %}<div>{{ pays }}</div>{% endif %}
+          {% if not l1 and not l2 and not cp and not ville and not pays %}
+            {% if adresseID %}<div>Adresse enregistrée sélectionnée (ID {{ adresseID }})</div>
+            {% elif existing_adresse %}<div>Adresse enregistrée sélectionnée (ID {{ existing_adresse }})</div>
+            {% else %}<div class="help">— Aucune adresse fournie —</div>{% endif %}
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="label">Livraison</div>
+        <div id="delivery-text">
+          {% if mode_sur_place %}Retrait sur place{% elif is_relay %}Point relais{% else %}À domicile{% endif %}
+        </div>
+        <div id="ship-choice" class="right-note" style="margin-top:.45rem"></div>
+      </div>
+    </div>
+  </div>
+
+  {% if form_error %}<div class="message">{{ form_error }}</div>{% endif %}
+
+  <!-- Récapitulatif -->
+  <div class="card" aria-label="Récapitulatif">
+    <div class="label">Récapitulatif</div>
+    <div class="table">
+      <div class="tr"><div class="k">Sous-total articles</div><div class="v" id="js-subtotal-text">—</div></div>
+      <div class="tr"><div class="k">Frais de livraison</div><div class="v" id="js-ship-text">—</div></div>
+      <div class="tr total"><div class="k">Total</div><div class="v" id="js-total-text">—</div></div>
+    </div>
+  </div>
+
+  <!-- Formulaire paiement -->
+  <form method="post" action="/checkout/pay" class="card" id="pay-form" style="background:var(--paper);border:1px solid var(--border);">
+    <!-- Contexte -->
+    <input type="hidden" name="ids" value="{{ ids }}">
+    <input type="hidden" name="mode" id="modeVal" value="{{ mode|default:'livraison' }}">
+    <input type="hidden" name="mode_livraison" id="modeLivVal" value="{{ mode|default:'livraison' }}">
+
+    <!-- adresse ID (compat) -->
+    <input type="hidden" name="adresseID" value="{% if adresseID %}{{ adresseID }}{% elif existing_adresse %}{{ existing_adresse }}{% endif %}">
+    <input type="hidden" name="existing_adresse" value="{% if existing_adresse %}{{ existing_adresse }}{% elif adresseID %}{{ adresseID }}{% endif %}">
+
+    <!-- adresse libre (déjà remplacée par l'adresse relais côté route si is_relay) -->
+    <input type="hidden" name="l1" value="{{ l1 }}">
+    <input type="hidden" name="l2" value="{{ l2 }}">
+    <input type="hidden" name="ville" value="{{ ville }}">
+    <input type="hidden" name="cp" value="{{ cp }}">
+    <input type="hidden" name="pays" value="{{ pays }}">
+
+    <!-- choix shipping propagé -->
+    <input type="hidden" name="shipping_id" id="shipping_id" value="{{ shipping_id }}">
+    <input type="hidden" name="ship" id="ship" value="{{ ship|default:shipping_price }}">
+    <input type="hidden" name="shipping_label" id="shipping_label" value="{{ shipping_label }}">
+    <input type="hidden" name="pickup_id" value="{{ pickup_id }}">
+    <input type="hidden" name="pickup_label" value="{{ pickup_label|default:relay_label }}">
+
+    <!-- pour affichage/normalisation -->
+    <input type="hidden" id="js-currency" value="{{ default_currency|default:'€' }}">
+    <input type="hidden" id="js-subtotal" value="{{ cards_total }}">
+    <input type="hidden" id="js-subtotal-cents" value="{{ cards_total_cents }}">
+    <input type="hidden" id="js-server-ship" value="{{ shipping_price }}">
+
+    <div class="label">Moyen de paiement</div>
+    <div class="radio-row" id="pay-choices">
+      <label class="radio-pill">
+        <input type="radio" name="payment_method" value="carte" checked> Carte (en ligne)
+      </label>
+      <label class="radio-pill" id="pay-surplace">
+        <input type="radio" name="payment_method" value="sur-place" {% if not mode_sur_place %}disabled{% endif %}> Sur place
+      </label>
+    </div>
+    <div class="help">“Sur place” n’est possible que si le mode de livraison est “Retrait sur place”.</div>
+
+    <div class="actions">
+      <button type="submit" class="button">Payer / Confirmer</button>
+      <button type="submit" class="button is-light" id="backBtn">⟵ Retour</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  // ---------- utils prix ----------
+  function centsToText(c){
+    var cur = document.getElementById('js-currency')?.value || '€';
+    return (c/100).toFixed(2).replace('.', ',') + ' ' + cur;
+  }
+  function parseLocaleNumber(str){
+    if(!str) return 0;
+    str = String(str).trim();
+    if (/^\d+$/.test(str)) return parseInt(str,10);
+    str = str.replace(/[^\d.,-]/g,'');
+    if (str.includes(',') && str.includes('.')){
+      str = str.replace(/\.(?=\d{3}(?:\D|$))/g,'');
+      str = str.replace(',', '.');
+    } else if (str.includes(',') && !str.includes('.')){
+      str = str.replace(',', '.');
+    }
+    var n = parseFloat(str);
+    return Number.isFinite(n)?n:0;
+  }
+  function toCents(v){
+    if (v==null || v==='') return 0;
+    if (typeof v==='number'){
+      if (Number.isInteger(v)){
+        if (v >= 10000 && v % 100 === 0) return Math.round(v/100);
+        return v;
+      }
+      return Math.round(v*100);
+    }
+    if (typeof v==='string'){
+      v = v.trim();
+      if (/^\d+$/.test(v)) return parseInt(v,10);
+      return Math.round(parseLocaleNumber(v)*100);
+    }
+    return 0;
+  }
+
+  // ---------- récup données ----------
+  var subCents = (function(){
+    var c1 = toCents(document.getElementById('js-subtotal-cents')?.value || '');
+    if (c1) return c1;
+    var c2 = document.getElementById('js-subtotal')?.value || '';
+    if (String(c2).match(/^\d+([.,]\d+)?$/)) return Math.round(parseLocaleNumber(c2)*100);
+    return toCents(c2);
+  })();
+
+  var rawShip = document.getElementById('ship')?.value || '';
+  var srvShip = document.getElementById('js-server-ship')?.value || '';
+  var shipCents = toCents(rawShip) || toCents(srvShip) || 0;
+  if (shipCents >= 10000 && shipCents % 100 === 0){
+    var fix = Math.round(shipCents/100);
+    if (fix > 0 && fix < 10000) shipCents = fix;
+  }
+
+  var shipId = (document.getElementById('shipping_id')?.value || '').toLowerCase();
+  var shipLabel = document.getElementById('shipping_label')?.value || '';
+  if (!shipLabel){
+    if (shipId.includes('home') || shipId.includes('domicile')) shipLabel = 'Colissimo Domicile';
+    else if (shipId.includes('pickup') || shipId.includes('relais')) shipLabel = 'Point Relais';
+    else shipLabel = 'Livraison';
+  }
+  var pickupLabel = document.querySelector('input[name="pickup_label"]')?.value || '';
+
+  // ---------- injection UI ----------
+  var subEl  = document.getElementById('js-subtotal-text');
+  var shipEl = document.getElementById('js-ship-text');
+  var totEl  = document.getElementById('js-total-text');
+  if (subEl)  subEl.textContent  = centsToText(subCents);
+  if (shipEl) shipEl.textContent = centsToText(shipCents);
+  if (totEl)  totEl.textContent  = centsToText(subCents + shipCents);
+
+  var choice = document.getElementById('ship-choice');
+  if (choice){
+    var extra = pickupLabel ? (' — ' + pickupLabel) : '';
+    choice.innerHTML = '<span class="badge">'+ shipLabel +'</span> — <strong>'+ centsToText(shipCents) +'</strong>'+ extra;
+  }
+
+  // bouton retour selon le mode
+  var mode = (document.getElementById('modeVal')||{}).value || (document.getElementById('modeLivVal')||{}).value || '';
+  var back = document.getElementById('backBtn');
+  if(back){
+    back.setAttribute('formmethod','GET');
+    back.setAttribute('formaction', (mode==='sur_place') ? '/checkout/livraison' : '/checkout/adresse');
+  }
+})();
+</script>
+
+{% endblock %}

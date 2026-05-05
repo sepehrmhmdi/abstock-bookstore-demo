@@ -1,0 +1,33 @@
+/* Define standard CSS. */
+/* We can (and should) use Bulma's SCSS customisation capacities. */
+
+body {
+  background-color: #fff;
+  color: #222831;
+  font-size: 18px;
+}
+
+.navbar {
+  background-color: #222831;
+}
+
+.navbar .navbar-item,
+.navbar .navbar-link {
+  color: #fff;
+}
+
+.navbar .navbar-item:hover,
+.navbar .navbar-link:hover {
+  background-color: #1a1f26;
+  color: #fff;
+}
+
+.basket .button {
+  background-color: #ea62ff; /* pink */
+  color: #fff;
+  border-color: transparent;
+}
+
+.basket .button:hover {
+  filter: brightness(0.95);
+}

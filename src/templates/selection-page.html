@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {{ title }}
+{% endblock %}
+
+{% block content %}
+<div class="container mb-6">
+  <section class="section">
+
+    <!-- Titre & Introduction -->
+    <div class="columns">
+      <div class="column is-8 is-offset-2">
+        <div class="box content selection-box">
+          <h3 class="title is-4 mb-3">
+            {% if user-content.product-selection-short-name %}
+              {{ user-content.product-selection-short-name }}
+            {% else %}
+              Sélection du libraire
+            {% endif %}
+          </h3>
+
+          {% if user-content.product-selection-intro-text %}
+            <div class="content">
+              {{ user-content.product-selection-intro-text | safe }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Table des matières -->
+    <div class="columns">
+      <div class="column is-12">
+        <div class="box content selection-box" id="toc">
+          {% for shelf/cards in selection %}
+            <a href="#{{ shelf/cards | first }}" class="tag is-light is-rounded mr-2 mb-2">
+              {{ shelf/cards | first }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sélections par rayon -->
+    {% for shelf/cards in selection %}
+      <div class="content mt-6">
+        <h3 class="title is-4" id="{{ shelf/cards | first }}">
+          <a class="bd-anchor-link has-text-grey-light" href="#{{ shelf/cards | first }}">#</a>
+          <span>{{ shelf/cards | first }}</span>
+        </h3>
+      </div>
+
+      <div class="columns is-multiline is-variable is-4">
+        {% for card in shelf/cards.rest %}
+          {% include "component-card.html" %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+  </section>
+</div>
+{% endblock %}

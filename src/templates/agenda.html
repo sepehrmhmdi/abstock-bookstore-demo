@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container agenda-container">
+    <h1 class="title is-3 has-text-centered">Agenda des événements</h1>
+
+    <div class="event">
+      <h2 class="title is-5"><i class="fas fa-book-open icon"></i> événement 1</h2>
+      <p class="event-date"><i class="fas fa-calendar-alt"></i> 12 juin 2025, à 18h00</p>
+      <p>détaille.</p>
+    </div>
+
+    <div class="event">
+      <h2 class="title is-5"><i class="fas fa-child icon"></i> événement 2</h2>
+      <p class="event-date"><i class="fas fa-calendar-alt"></i> 15 juin 2025, à 10h30</p>
+      <p>détaille.</p>
+    </div>
+
+    <div class="event">
+      <h2 class="title is-5"><i class="fas fa-paint-brush icon"></i> événement 3</h2>
+      <p class="event-date"><i class="fas fa-calendar-alt"></i> 22 juin 2025, à 14h00</p>
+      <p>détaille.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .agenda-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .event {
+    background-color: #fefbf5;
+    border: 1px solid #e0d6c4;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+  }
+
+  .event .title {
+    margin-bottom: 0.5rem;
+    color: #5d3d3d;
+  }
+
+  .event .icon {
+    color: #935555;
+    margin-right: 0.5rem;
+  }
+
+  .event-date {
+    font-size: 0.95rem;
+    color: #6d2c2f;
+    margin-bottom: 0.5rem;
+  }
+
+  body.dark-mode .event {
+    background-color: #2e2a2e;
+    border-color: #3e3a3e;
+    color: #e3e3e3;
+  }
+
+  body.dark-mode .event .title {
+    color: #f0f0f0;
+  }
+
+  body.dark-mode .event .icon {
+    color: #a3c9f9;
+  }
+
+  body.dark-mode .event-date {
+    color: #b5bfd4;
+  }
+</style>
+{% endblock %}

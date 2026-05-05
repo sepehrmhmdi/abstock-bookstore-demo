@@ -1,0 +1,12 @@
+<svg width="180" height="250" viewBox="0 0 180 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="12" y="12" width="156" height="226" rx="18" fill="#f8f4ea" stroke="#e4dab7" stroke-width="4"></rect>
+  <rect x="20" y="24" width="140" height="200" rx="10" fill="#fff7e8"></rect>
+  <text x="50%" y="60%" text-anchor="middle" fill="#caa366" font-family="Georgia, serif" font-size="22" font-weight="bold" letter-spacing="1" dy=".3em">Pas de</text>
+  <text x="50%" y="70%" text-anchor="middle" fill="#b4986a" font-family="Georgia, serif" font-size="20" font-weight="bold" letter-spacing="1" dy=".3em">couverture</text>
+  <rect x="36" y="46" width="108" height="7" rx="2" fill="#f0d9b5" opacity="0.18"></rect>
+  <rect x="36" y="64" width="108" height="7" rx="2" fill="#f0d9b5" opacity="0.15"></rect>
+  <rect x="36" y="82" width="108" height="7" rx="2" fill="#f0d9b5" opacity="0.13"></rect>
+  <rect x="36" y="100" width="108" height="7" rx="2" fill="#f0d9b5" opacity="0.11"></rect>
+  <rect x="36" y="118" width="108" height="7" rx="2" fill="#f0d9b5" opacity="0.09"></rect>
+  <!-- (these little faded lines evoke book pages, but very subtly) -->
+</svg>

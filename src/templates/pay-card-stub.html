@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Paiement par carte (simulation){% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width: 760px;">
+    <div class="box">
+      <h1 class="title is-4">Paiement par carte — mode démo</h1>
+      <p class="mb-4">
+        Cette page simule la redirection vers le prestataire de paiement.
+        Aucune carte réelle n’est débitée.
+      </p>
+
+      <h2 class="title is-5">Récapitulatif</h2>
+      <ul class="mb-3">
+        {% if name %}<li><strong>Nom/Prénom :</strong> {{ name }}</li>{% endif %}
+        {% if email %}<li><strong>Email :</strong> {{ email }}</li>{% endif %}
+        {% if phone %}<li><strong>Téléphone :</strong> {{ phone }}</li>{% endif %}
+      </ul>
+
+      {% if message %}
+        <p><strong>Message&nbsp;:</strong><br>{{ message }}</p>
+      {% endif %}
+
+      <h3 class="title is-6 mt-5">Articles</h3>
+      <div class="content">
+        {% if cards %}
+          <ul>
+            {% for c in cards %}
+              <li>{{ c.title }} — {{ c.price|price }}{% if c.author %} ({{ c.author }}){% endif %}</li>
+            {% endfor %}
+          </ul>
+        {% elif items %}
+          <ul>
+            {% for i in items %}
+              <li>{{ i.title }} — {{ i.price|price }}{% if i.author %} ({{ i.author }}){% endif %}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Aucun article.</p>
+        {% endif %}
+      </div>
+
+      <p class="is-size-5 has-text-right">
+        <strong>Total :</strong> {{ total|price }}
+      </p>
+
+      <form class="mt-5" action="/paiement/carte/confirm" method="post">
+        <input type="hidden" name="ref" value="{{ ref }}">
+        <button class="button is-primary is-fullwidth" type="submit">
+          Payer par carte (simulation)
+        </button>
+      </form>
+
+      <div class="mt-3">
+        <a class="button is-light is-fullwidth" href="/panier?ids={{ ids }}&open=1">
+          Annuler et revenir au panier
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

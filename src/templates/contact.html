@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Contact{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container contact-container">
+
+    <!-- Titre principal -->
+    <h1 class="title is-3 has-text-centered">Contact</h1>
+
+    <!-- Encadré de contact -->
+    <div class="contact-box box">
+      <p class="has-text-centered">
+        Vous pouvez nous contacter à l'adresse suivante :<br>
+        <strong>contact@example.com</strong>
+      </p>
+    </div>
+
+    <!-- Section Qui sommes-nous -->
+    <div class="about-box box mt-6">
+      <h2 class="title is-4">Qui sommes-nous ?</h2>
+      <p>
+        Demo Bookshop est une librairie fictive utilisée comme preuve de concept pour ce projet.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .contact-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .contact-box,
+  .about-box {
+    background-color: #fffade;
+    border: 1px solid #d6c7b0;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .title {
+    color: #6d2c2f;
+  }
+
+  body.dark-mode .contact-box,
+  body.dark-mode .about-box {
+    background-color: #4a3c33;
+    border-color: #7c6357;
+    color: #f5f5f5;
+  }
+
+  body.dark-mode .title {
+    color: #e0d3c1;
+  }
+
+  body.dark-mode .contact-box strong {
+    color: #d7c5ec;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block content %}
+
+<div class="container" style="margin: 3em">
+  <div class="columns">
+    <div class="column is-one-quarter"></div>
+
+    <div class="column">
+      <div>
+
+        <div>
+          <em> Pour modifier le texte, cliquez dessus. Pour mettre en
+          forme (mettre en gras, en couleur, ajouter un lien etc),
+          sélectionnez du texte et utilisez la barre d'outils qui
+          apparaît. N'écrivez pas de code HTML directement.</em>
+        </div>
+        <br/>
+
+        {% for obj in user-custom-texts %}
+        <div class="columns">
+          <div class="column is-four-fifths">
+            <h4 class="title is-4"> {{ obj.title }} </h4>
+          </div>
+
+          <div class="column">
+            <button class="button is-success"
+                onclick="save_admin('{{ obj.id }}')"> save </button>
+          </div>
+        </div>
+
+        <stylo-editor></stylo-editor>
+
+        <!-- This editor id matches with the custom textid -->
+        <article contenteditable="true" id="{{ obj.id }}">
+
+          {% if obj.content %}
+
+          {{ obj.content | safe }}
+
+          {% else %}
+
+          <div>Lorem ipsum dolor sit amet.</div>
+          <ul>
+            <li>Hello</li>
+            <li>World</li>
+          </ul>
+          <div>In ac tortor suscipit.</div>
+
+          {% endif %}
+
+        </article>
+        <br/>
+
+        {% endfor %}
+
+      </div>
+
+      <div class="columns is-one-quarter"></div>
+    </div>
+  </div>
+
+  <div style="display: none" id="api-token"> {{ api-token }} </div>
+
+</div>
+
+{% endblock %}

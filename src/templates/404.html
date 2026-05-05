@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Page introuvable — 404{% endblock %}
+
+{% block content %}
+<section class="hero is-fullheight is-light">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <figure class="image is-128x128 is-inline-block mb-4">
+        <img src="/static/img/owl_login.png" alt="Chouette perdue" style="max-height: 160px;">
+      </figure>
+
+      <h1 class="title is-1 has-text-danger">404</h1>
+      <h2 class="title is-3 mb-4">Oups… cette page s’est envolée.</h2>
+      <p class="subtitle is-5 mb-5">
+        Soit le lien est cassé, soit le livre est déjà parti chez un autre lecteur.
+      </p>
+
+      {% include "search-form.html" %}
+
+      <div class="mt-5">
+        <a href="/" class="button is-link is-light is-medium">
+          <span class="icon"><i class="fas fa-arrow-left"></i></span>
+          <span>Retour à l’accueil</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  body.dark-mode .hero.is-light {
+    background-color: #2b222a;
+    color: #f2e8df;
+  }
+
+  body.dark-mode .hero.is-light a.button.is-light {
+    background-color: #46353e;
+    color: #e0d6c4;
+  }
+
+  body.dark-mode .hero.is-light a.button.is-light:hover {
+    background-color: #5a434d;
+    color: white;
+  }
+</style>
+{% endblock %}

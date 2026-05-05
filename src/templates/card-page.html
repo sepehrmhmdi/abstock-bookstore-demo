@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}{{ card.title }}{% endblock %}
+
+{% block content %}
+<section class="section livre-detail">
+  <div class="container is-max-desktop">
+
+    <!-- Bloc fiche produit -->
+    <div class="box p-6 has-text-centered">
+
+      <!-- Image couverture -->
+      <figure class="image mx-auto mb-5" style="max-width: 240px; aspect-ratio: 3/4; overflow: hidden;">
+        {% if card.cover %}
+          <img src="{{ card.cover }}" alt="Couverture de {{ card.title }}" class="book-cover" style="width: 100%; height: 100%; object-fit: cover;">
+        {% else %}
+          <img src="/static/img/no_cover.svg" alt="Pas de couverture" class="book-cover" style="width: 100%; height: 100%; object-fit: cover;">
+        {% endif %}
+      </figure>
+
+      <!-- Titre lisible et non tronqué -->
+      <h1 class="title is-4 mb-1" style="white-space: normal; line-height: 1.4;">
+        {{ card.title }}
+      </h1>
+
+      <!-- Auteur -->
+      {% if card.author %}
+        <p class="subtitle is-6 mt-1">
+          Par <a href="/search?q={{ card.author }}">{{ card.author | capfirst }}</a>
+        </p>
+      {% endif %}
+
+      <!-- Éditeur -->
+      {% if card.publisher %}
+        <p class="has-text-grey mb-1">{{ card.publisher | capfirst }}</p>
+      {% endif %}
+
+      <!-- État du livre -->
+      {% if card.state %}
+        <p><span class="tag is-light is-small">{{ card.state }}</span></p>
+      {% endif %}
+
+      <!-- Rayon -->
+      {% if card.shelf %}
+        <p class="mt-1">
+          <a href="/search?rayon={{ card.shelf_id }}">
+            <span class="tag is-rounded is-light">{{ card.shelf | truncatechars:27 }}</span>
+          </a>
+        </p>
+      {% endif %}
+
+      <!-- ISBN -->
+      {% if card.isbn %}
+        <p class="has-text-grey-light mt-2">{{ card.isbn }}</p>
+      {% endif %}
+
+      <!-- Prix -->
+      {% if card.price %}
+        <p class="title is-5 mt-3 has-text-weight-bold">{{ card.price | price }}</p>
+      {% endif %}
+
+      <!-- Bouton panier -->
+      <button class="button is-link is-fullwidth is-rounded mt-4" onclick="add_to_cart({{ card.id }})">
+        <span class="icon"><i class="fas fa-plus-circle"></i></span>
+        <span>Ajouter au panier</span>
+      </button>
+
+      <!-- Résumé -->
+      {% if card.summary %}
+        <div class="content mt-5 has-text-left">
+          <h4 class="title is-6">Résumé</h4>
+          <blockquote class="has-text-grey-dark" style="white-space: pre-line;">{{ card.summary }}</blockquote>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Suggestions -->
+    {% if same-shelf %}
+    <div class="section pt-5">
+      <h2 class="title is-5 mb-4">Dans le même rayon</h2>
+      <div class="columns is-multiline is-variable is-4">
+        {% for card in same-shelf %}
+          {% include "component-card.html" %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+  // Si pas de résumé en base, fetch dynamiquement
+  function is_summary_field () {
+    return document.getElementById("new-card-summary") !== null;
+  }
+
+  function get_summary () {
+    if (!is_summary_field()) return;
+    fetch(`/api/card/{{ card.id }}/summary`)
+      .then(r => r.text())
+      .then(t => {
+        document.getElementById("new-card-summary").textContent = t;
+      });
+  }
+
+  document.addEventListener("DOMContentLoaded", get_summary);
+</script>
+{% endblock %}

@@ -1,0 +1,282 @@
+{%extends "base.html"%}
+{%block title%}{% if title %}{{title}}{% else %}Mon panier{% endif %}{%endblock%}
+
+{%block content%}
+<section class="section">
+  <div class="checkout-wrap">
+    <!-- Stepper -->
+    <div class="stepper">
+      <div class="step is-active"><span class="dot"></span>Panier</div>
+      <div class="step"><span class="dot"></span>Livraison</div>
+      <div class="step"><span class="dot"></span>Adresse</div>
+      <div class="step"><span class="dot"></span>Paiement</div>
+    </div>
+
+    <!-- Mascotte -->
+    <img class="owl" src="/static/img/owl_login.png" alt="Chouette">
+
+    <h1 class="title">Votre panier</h1>
+  </div>
+
+  <div class="container basket-layout" id="basket"
+       data-currency="{%if default_currency%}{{default_currency}}{%else%}€{%endif%}">
+    <div class="basket-main">
+      <div class="box basket-box" role="region" aria-labelledby="basketTitle">
+        <h3 id="basketTitle" class="title is-5 has-text-centered">
+          {% if basket_title %}{{basket_title}}{% else %}Vérifiez vos articles avant de valider votre commande.{% endif %}
+        </h3>
+
+        <div class="is-flex is-justify-content-space-between is-align-items-center mt-3">
+          <button id="emptyBtn" class="button is-light is-small" type="button">
+            <span class="icon is-small"><i class="fas fa-trash-alt" aria-hidden="true"></i></span>
+            <span>Vider le panier</span>
+          </button>
+          <!-- Sous-total (hors livraison) -->
+          <div class="has-text-right">
+            Sous-total (hors livraison)&nbsp;:
+            <strong id="total">0.00</strong>
+            <strong aria-label="Devise">{%if default_currency%}{{default_currency}}{%else%}€{%endif%}</strong>
+            <div class="is-size-7 has-text-grey mt-1">
+              Les frais de livraison seront ajoutés à l'étape suivante.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if cards %}
+      <div id="basketList" class="basket-list" aria-live="polite">
+        {% for c in cards %}
+        <!-- data-price-cents si dispo, sinon data-price (décimal) -->
+        <div class="box basket-card"
+             role="group"
+             aria-label="Article {{forloop.counter}}"
+             data-id="{{c.id}}"
+             {% if c.price_cents %}data-price-cents="{{c.price_cents}}"{% endif %}
+             data-price="{{c.price}}">
+          <article class="media">
+            <figure class="media-left">
+              <p class="image is-64x64">
+                {% if c.cover %}
+                  <img src="{{c.cover}}" alt="Couverture de {{c.title}}">
+                {% else %}
+                  <img src="/static/img/no_cover.svg" alt="Pas de couverture">
+                {% endif %}
+              </p>
+            </figure>
+
+            <div class="media-content">
+              <p class="mb-1">
+                <strong class="is-block">{{c.title}}</strong>
+                {% if c.author %}<span class="is-size-7 has-text-grey">par {{c.author}}</span>{% endif %}
+              </p>
+              <p class="is-size-7">
+                {% if c.shelf %}<span class="tag is-light">{{c.shelf}}</span>{% endif %}
+                {% if c.publisher %}<span class="ml-2">{{c.publisher}}</span>{% endif %}
+              </p>
+            </div>
+
+            <div class="media-right has-text-right">
+              <!-- prix livre bien visible -->
+              <div class="price-line">
+                <span class="price-val is-size-5 has-text-weight-semibold">{{c.price|price}}</span>
+              </div>
+              <button class="delete is-small mt-2" title="Supprimer cet article" data-remove="{{c.id}}"></button>
+            </div>
+          </article>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="notification is-info has-text-centered py-6" role="status" aria-live="polite" id="emptyNotice">
+        <span class="icon is-large"><i class="fas fa-shopping-basket fa-2x" aria-hidden="true"></i></span>
+        <p class="mt-3 mb-2">Votre panier est vide.</p>
+        <a href="/" class="button is-link is-rounded mt-2">Parcourir la librairie</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="basket-aside">
+      <div class="box basket-summary" role="region" aria-labelledby="summaryTitle">
+        <h4 id="summaryTitle" class="title is-5">Résumé</h4>
+
+        <div class="sum-row"><span>Articles</span><span id="itemsCount">0</span></div>
+        <div class="sum-row">
+          <span>Sous-total articles</span>
+          <span><strong id="sum-subtotal">0.00</strong> <strong>{%if default_currency%}{{default_currency}}{%else%}€{%endif%}</strong></span>
+        </div>
+        <div class="sum-row">
+          <span>Frais de livraison</span>
+          <span id="sum-shipping" class="has-text-grey">— à calculer</span>
+        </div>
+
+        <hr class="my-3">
+
+        <div class="sum-row">
+          <span>Total provisoire (hors livraison)</span>
+          <span><strong id="sum-total">0.00</strong> <strong>{%if default_currency%}{{default_currency}}{%else%}€{%endif%}</strong></span>
+        </div>
+
+        <p class="is-size-7 has-text-grey mt-2">
+          Les frais de livraison seront ajoutés après le choix du mode de livraison (étape suivante).
+        </p>
+
+        <form id="goCheckoutForm" action="/checkout/livraison" method="get" class="mt-3">
+          <input type="hidden" name="ids" id="hiddenIds" value="">
+          <button id="goCheckoutBtn" type="submit" class="button is-link is-fullwidth" disabled>Choisir la livraison</button>
+        </form>
+
+        <noscript>
+          <a href="/checkout/livraison?ids={{ids}}" class="button is-link is-fullwidth">Choisir la livraison</a>
+        </noscript>
+
+        <a href="/" class="button is-light is-fullwidth mt-2">Continuer mes achats</a>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<style>
+:root{--primary:#3f4c73;--primary-weak:#e6eaf7;--ink:#2b2b2b;--paper:#fffdf3;--border:#e6ddc7}
+.checkout-wrap{max-width:900px;margin:0 auto;padding:1.2rem}
+h1.title{font-size:1.35rem;margin:.2rem 0 .8rem;text-align:center;color:var(--ink);font-weight:600}
+.stepper{display:flex;gap:.75rem;align-items:center;justify-content:center;margin:0 0 1rem}
+.step{display:flex;align-items:center;gap:.5rem;font-size:.95rem;opacity:.7}
+.step.is-active{font-weight:600;opacity:1}
+.step .dot{width:.9rem;height:.9rem;border-radius:999px;border:2px solid #333}
+.step.is-active .dot{background:#333}
+.owl{display:block;margin:.15rem auto .25rem;width:64px;height:auto;filter:drop-shadow(0 1px 0 rgba(0,0,0,.04))}
+.basket-layout{display:grid;grid-template-columns:1fr;gap:1.25rem}
+@media (min-width:980px){.basket-layout{grid-template-columns:2fr 1fr;align-items:start}}
+.basket-box{background:#fefbf5;border:1px solid #e0d6c4}
+.basket-list{display:grid;gap:.75rem}
+.basket-card{background:#fbf8ef;border:1px solid #e2d7c0;transition:transform .15s}
+.basket-card:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,0,0,.06)}
+.basket-card img{border-radius:6px;border:1px solid #ddd2c4}
+.basket-summary{position:sticky;top:1rem;background:#fffdf6;border:1px solid #e0d6c4}
+.price-line{white-space:nowrap}.price-val{color:#2b2b2b}
+.sum-row{display:flex;justify-content:space-between;align-items:center;margin:.35rem 0}
+</style>
+
+<script>
+/* Parsing robuste de prix (12,00 €, 12.00, 1200 centimes, etc.) */
+function parseLocaleNumber(str){
+  if(!str) return 0;
+  str = String(str).trim();
+  // retirer devise/espaces
+  // si dot ET comma -> dot = milliers, comma = décimal
+  if (str.includes(',') && str.includes('.')){
+    str = str.replace(/\.(?=\d{3}(?:\D|$))/g,''); // supprime points de milliers
+    str = str.replace(',', '.');                  // virgule -> point
+  } else if (str.includes(',') && !str.includes('.')){
+    str = str.replace(',', '.');
+  }
+  str = str.replace(/[^\d.-]/g,''); // supprime tout sauf chiffres, signe, point
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function readCardCents(card){
+  // 1) attribut centimes direct
+  let v = card.getAttribute('data-price-cents');
+  if (v && /^\d+$/.test(v.trim())) return parseInt(v,10);
+
+  // 2) attribut prix décimal
+  v = v || card.getAttribute('data-price');
+  if (v){
+    const n = parseLocaleNumber(v);
+    if (Number.isFinite(n)) return Math.round(n * 100);
+  }
+
+  // 3) texte visible
+  const t = card.querySelector('.price-val')?.textContent || '';
+  const n = parseLocaleNumber(t);
+  return Math.round((Number.isFinite(n)? n : 0) * 100);
+}
+
+function money(n){
+  try{ return new Intl.NumberFormat(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}).format(n); }
+  catch(_){ return (Math.round(n*100)/100).toFixed(2); }
+}
+
+function currentIds(){
+  return Array.from(document.querySelectorAll(".basket-card[data-id]")).map(n=>n.dataset.id);
+}
+
+function subtotal(){
+  return Array.from(document.querySelectorAll(".basket-card")).reduce((sum, card)=> sum + readCardCents(card), 0) / 100;
+}
+
+function refreshUI(){
+  const sub = subtotal();
+  const cnt = currentIds().length;
+
+  // Totaux (hors livraison)
+  const tTop = document.getElementById("total");
+  const tSub = document.getElementById("sum-subtotal");
+  const tTot = document.getElementById("sum-total");
+  const iCnt = document.getElementById("itemsCount");
+
+  if(tTop) tTop.textContent = money(sub);
+  if(tSub) tSub.textContent = money(sub);
+  if(tTot) tTot.textContent = money(sub); // provisoire = sous-total
+  if(iCnt) iCnt.textContent = String(cnt);
+
+  // Bouton / hidden ids
+  const btn = document.getElementById("goCheckoutBtn"); if(btn) btn.disabled = (cnt===0);
+  const hidden = document.getElementById("hiddenIds"); if(hidden) hidden.value = currentIds().join(",");
+
+  if (typeof window.refreshBasketCount === "function") window.refreshBasketCount();
+
+  // état vide
+  const list = document.getElementById("basketList");
+  if(cnt===0 && list){
+    const n=document.createElement("div"); n.id="emptyNotice"; n.className="notification is-info has-text-centered py-6"; n.setAttribute("role","status");
+    n.innerHTML='<span class="icon is-large"><i class="fas fa-shopping-basket fa-2x"></i></span><p class="mt-3 mb-2">Votre panier est vide.</p><a href="/" class="button is-link is-rounded mt-2">Parcourir la librairie</a>';
+    list.replaceWith(n);
+  }
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  refreshUI();
+
+  // supprimer un article
+  document.body.addEventListener("click",function(e){
+    const btn=e.target.closest("[data-remove]"); if(!btn) return;
+    e.preventDefault(); cartRemove(btn.getAttribute("data-remove"));
+  });
+
+  // vider
+  document.getElementById("emptyBtn")?.addEventListener("click", cartClear);
+
+  // passer à la livraison
+  const form=document.getElementById("goCheckoutForm");
+  if(form){
+    form.addEventListener("submit",function(e){
+      const ids=currentIds();
+      if(ids.length===0){ e.preventDefault(); alert("Votre panier est vide."); }
+      else document.getElementById("hiddenIds").value = ids.join(",");
+    });
+  }
+});
+</script>
+
+<script>
+async function postForm(url, body="") {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {"Content-Type":"application/x-www-form-urlencoded"},
+    body
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json().catch(()=> ({}));
+}
+async function cartClear() {
+  try { await postForm("/api/cart/clear"); location.href="/panier?open=1"; }
+  catch(e){ alert("Impossible de vider le panier."); }
+}
+async function cartRemove(id) {
+  try { await postForm("/api/cart/remove","id="+encodeURIComponent(id)); location.href="/panier?open=1"; }
+  catch(e){ alert("Suppression échouée."); }
+}
+</script>
+{%endblock%}

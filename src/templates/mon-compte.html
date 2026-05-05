@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Mon espace client{% endblock %}
+
+{% block content %}
+<section class="section client-space-wrapper">
+  <!-- ===== Profil / header ===== -->
+  <div class="client-card box" role="region" aria-labelledby="clientHeading">
+    <h1 id="clientHeading" class="title is-3 has-text-centered">Bienvenue dans votre espace client</h1>
+
+    {% if profile_ok %}
+      <div class="client-header">
+        <div class="avatar" aria-hidden="true" id="avatarCircle">
+          <span id="avatarInitials"></span>
+        </div>
+        <div class="client-basics">
+          <p class="is-size-4 has-text-weight-semibold" id="fullName">{{ prenom }} {{ nom }}</p>
+          <p class="is-size-6"><span class="tag is-rounded is-light">Client</span></p>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="client-info columns is-multiline" role="group" aria-label="Informations du compte">
+        <div class="column is-12">
+          <h2 class="title is-5">Coordonnées</h2>
+        </div>
+
+        <div class="column is-12">
+          <div class="info-line">
+            <span class="info-label">Email :</span>
+            <span class="info-value" id="emailValue">{{ email }}</span>
+            <button class="button is-small is-light ml-2" type="button" id="copyEmailBtn" aria-label="Copier l'email">
+              <span class="icon is-small"><i class="fas fa-copy" aria-hidden="true"></i></span>
+              <span>Copier</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="column is-12">
+          <div class="info-line">
+            <span class="info-label">Téléphone :</span>
+            <span class="info-value">{{ telephone }}</span>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="notification is-warning has-text-centered" role="alert" aria-live="assertive">
+        Impossible de récupérer vos informations. Veuillez vous reconnecter.
+      </div>
+    {% endif %}
+
+    <div class="actions mt-5 buttons is-centered">
+      <a href="/logout" class="button is-danger is-rounded">
+        <span class="icon"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></span>
+        <span>Se déconnecter</span>
+      </a>
+      <a href="/mon-compte/editer" class="button is-link is-light is-rounded">
+        <span class="icon"><i class="fas fa-user-edit" aria-hidden="true"></i></span>
+        <span>Éditer mes infos</span>
+      </a>
+      <a href="/mon-compte/mot-de-passe" class="button is-link is-light is-rounded">
+        <span class="icon"><i class="fas fa-key" aria-hidden="true"></i></span>
+        <span>Changer le mot de passe</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ===== Adresses ===== -->
+  <div class="box" role="region" aria-labelledby="addressesHeading">
+    <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+      <h2 id="addressesHeading" class="title is-4">Mes adresses</h2>
+      <a href="/mon-compte/adresses/nouvelle" class="button is-primary is-light">Ajouter une adresse</a>
+    </div>
+
+    {% if adresses %}
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable addr-table">
+          <thead>
+            <tr>
+              <th>Adresse</th>
+              <th class="is-narrow">CP / Ville</th>
+              <th class="is-narrow">Pays</th>
+              <th class="has-text-right is-narrow">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in adresses %}
+            {# a est un plist: a.id a.ligne1 a.ligne2 a.code_postal a.ville a.pays #}
+            <tr>
+              <td class="addr-cell">
+                {{ a.ligne1 }}
+                {% if a.ligne2 %}<br><small>{{ a.ligne2 }}</small>{% endif %}
+              </td>
+              <td class="cpville-cell">{{ a.code_postal }} {{ a.ville }}</td>
+              <td class="pays-cell">{{ a.pays }}</td>
+              <td class="has-text-right">
+                <a class="button is-small" href="/mon-compte/adresses/{{ a.id }}/editer">Éditer</a>
+                <form action="/mon-compte/adresses/{{ a.id }}/supprimer" method="post" style="display:inline">
+                  <button class="button is-small is-danger" type="submit" onclick="return confirm('Supprimer cette adresse ?');">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="notification is-light">
+        Vous n’avez pas encore d’adresse. <a href="/mon-compte/adresses/nouvelle">Ajouter une adresse</a>.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ===== Commandes ===== -->
+  <div class="box orders-card" role="region" aria-labelledby="ordersHeading">
+    <h2 id="ordersHeading" class="title is-4">Mes commandes</h2>
+
+    {% if orders %}
+      <div class="table-container">
+        <table class="table is-striped is-fullwidth is-hoverable">
+          <thead>
+            <tr>
+              <th>N°</th>
+              <th>Date</th>
+              <th>Articles</th>
+              <th>Total</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+            <tr>
+              <td>#{{ o.id }}</td>
+              <td>{{ o.date }}</td>
+              <td>{{ o.items_count }}</td>
+              <td>
+                {{ o.total }}
+                {% if o.currency %}{{ o.currency }}{% else %}{{ default_currency }}{% endif %}
+              </td>
+              <td>
+                {% if o.status %}
+                  <span class="tag is-rounded is-info is-light">{{ o.status }}</span>
+                {% else %}
+                  <span class="tag is-rounded is-light">—</span>
+                {% endif %}
+              </td>
+              <td class="has-text-right">
+                <a class="button is-small is-light" href="/commande/{{ o.id }}">
+                  <span class="icon is-small"><i class="fas fa-eye" aria-hidden="true"></i></span>
+                  <span>Détails</span>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="notification is-light has-text-centered">
+        <p class="mb-2">Vous n’avez pas encore de commande.</p>
+        <a href="/" class="button is-link is-rounded">Découvrir les livres</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+  .client-space-wrapper { max-width: 920px; margin: 2.5rem auto; }
+  .client-card { background-color: #fffade; border: 1px solid #d6c7b0; border-radius: 12px; }
+  .client-header { display: grid; grid-template-columns: 72px 1fr; gap: 1rem; align-items: center; margin-top: .5rem; }
+  .avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #6d2c2f, #a26263); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 1.25rem; }
+  .client-info .info-line { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .4rem 0; border-bottom: 1px dashed #e2d7c0; }
+  .client-info .info-line:last-child { border-bottom: 0; }
+  .info-label { min-width: 110px; font-weight: 600; color: #5a2327; }
+  .info-value { flex: 1; word-break: break-word; }
+
+  .orders-card { margin-top: 1.5rem; background-color: #fffdf6; border: 1px solid #e0d6c4; border-radius: 12px; }
+
+  /* Table adresses: align propre + pas de wrap */
+  .addr-table { table-layout: auto; }
+  .addr-table td, .addr-table th { vertical-align: middle; }
+  .addr-cell { max-width: 420px; }
+  .cpville-cell, .pays-cell { white-space: nowrap; }
+
+  .button.is-danger { background-color: #a83232; color: #fff; font-weight: 700; }
+  .button.is-danger:hover { background-color: #7d2525; }
+  .button.is-link.is-light { color: #432; border-color: #d9c8c0; }
+  .button.is-link.is-light:hover { background-color: #f4ece6; }
+
+  body.dark-mode .client-card, body.dark-mode .orders-card { background-color: #4a3c33; color: #f5f5f5; border-color: #7c6357; }
+  body.dark-mode .info-label { color: #e6d7d0; }
+  body.dark-mode .button.is-danger { background-color: #b35858; }
+  body.dark-mode .button.is-danger:hover { background-color: #d37a7a; color: #222; }
+  body.dark-mode .button.is-link.is-light { background-color: #5a4c43; color: #f7f1ea; border-color: #7c6357; }
+  body.dark-mode .button.is-link.is-light:hover { background-color: #6b5b51; }
+</style>
+
+<script>
+  (function initAvatar() {
+    const fullName = document.getElementById('fullName');
+    const initialsNode = document.getElementById('avatarInitials');
+    if (!fullName || !initialsNode) return;
+    const parts = fullName.textContent.trim().split(/\s+/).filter(Boolean);
+    const initials = parts.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+    initialsNode.textContent = initials || '👤';
+  })();
+
+  (function copyEmailSetup() {
+    const btn = document.getElementById('copyEmailBtn');
+    const emailNode = document.getElementById('emailValue');
+    if (!btn || !emailNode) return;
+    btn.addEventListener('click', async () => {
+      const email = emailNode.textContent.trim();
+      try {
+        await navigator.clipboard.writeText(email);
+        announce('Adresse e-mail copiée dans le presse-papiers.');
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = email; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); ta.remove();
+        announce('Adresse e-mail copiée.');
+      }
+    });
+  })();
+
+  function ensureAriaLive() {
+    if (!document.getElementById('ariaLive')) {
+      const live = document.createElement('div');
+      live.id = 'ariaLive';
+      live.setAttribute('aria-live', 'polite');
+      live.style.position = 'absolute';
+      live.style.left = '-9999px';
+      document.body.appendChild(live);
+    }
+  }
+  function announce(msg) {
+    ensureAriaLive();
+    const live = document.getElementById('ariaLive');
+    live.textContent = msg;
+  }
+</script>
+{% endblock %}

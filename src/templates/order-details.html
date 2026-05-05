@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Commande #{{ commande.id }}{% endblock %}
+
+{% block content %}
+<section class="section">
+
+  <!-- mêmes variables/teintes que le panier -->
+  <style>
+  :root{
+    --primary:#3f4c73;
+    --primary-weak:#e6eaf7;
+    --ink:#2b2b2b;
+    --paper:#fffdf3;
+    --border:#e6ddc7;
+  }
+  .checkout-wrap{max-width:900px;margin:0 auto;padding:1.2rem}
+  h1.title{font-size:1.35rem;margin:.2rem 0 .35rem;text-align:center;color:var(--ink);font-weight:600}
+  .meta{color:#7a7a7a;text-align:center;margin:0 0 1rem}
+  .owl{display:block;margin:.15rem auto .3rem;width:64px;height:auto;filter:drop-shadow(0 1px 0 rgba(0,0,0,.04))}
+
+  /* même grille que panier */
+  .order-layout{display:grid;grid-template-columns:1fr;gap:1.25rem;max-width:1000px;margin:0 auto}
+  @media (min-width:980px){.order-layout{grid-template-columns:2fr 1fr;align-items:start}}
+
+  .order-box{background:#fefbf5;border:1px solid #e0d6c4;border-radius:12px;padding:1rem 1rem 1.2rem}
+  .order-list{display:grid;gap:.75rem}
+  .order-card{background:#fbf8ef;border:1px solid #e2d7c0;border-radius:10px;padding:.75rem .9rem;transition:transform .15s}
+  .order-card:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,0,0,.06)}
+  .order-card img{border-radius:6px;border:1px solid #ddd2c4}
+  .order-summary{position:sticky;top:1rem;background:#fffdf6;border:1px solid #e0d6c4;border-radius:12px;padding:1rem 1.1rem}
+
+  .price-line{white-space:nowrap}
+  .price-val{color:#6b6b6b;margin-right:.25rem}
+  .qty{font-size:.85rem;color:#7a7a7a}
+
+  body.dark-mode .order-box{background:#3a2f29;border-color:#69574d;color:#f5f5f5}
+  body.dark-mode .order-card{background:#4a3c33;border-color:#7c6357;color:#f5f5f5}
+  body.dark-mode .order-card img{border:1px solid #9e8c7f}
+  body.dark-mode .order-summary{background:#40362f;border-color:#7c6357}
+  </style>
+
+  <div class="checkout-wrap">
+    <img class="owl" src="/static/img/owl_login.png" alt="Chouette">
+    <h1 class="title">Commande #{{ commande.id }}</h1>
+    <p class="meta">
+      <strong>Date :</strong> {{ commande.date }} —
+      <strong>Total :</strong> {{ commande.total|price }}
+    </p>
+  </div>
+
+  <div class="container order-layout">
+    <!-- colonne principale -->
+    <div class="order-main">
+      <div class="order-box">
+        <h3 class="title is-5 has-text-centered">Articles de la commande</h3>
+
+        {% if articles %}
+        <div class="order-list">
+          {% for a in articles %}
+          <div class="order-card">
+            <article class="media">
+              <figure class="media-left">
+                <p class="image is-64x64">
+                  {% if a.cover %}
+                    {% if a.url %}<a href="{{ a.url }}">{% endif %}
+                      <img src="{{ a.cover }}" alt="Couverture">
+                    {% if a.url %}</a>{% endif %}
+                  {% else %}
+                    <img src="/static/img/no_cover.svg" alt="Pas de couverture">
+                  {% endif %}
+                </p>
+              </figure>
+
+              <div class="media-content">
+                <p class="mb-1">
+                  {% if a.url %}
+                    <a href="{{ a.url }}"><strong class="is-block">{{ a.title }}</strong></a>
+                  {% else %}
+                    <strong class="is-block">{{ a.title }}</strong>
+                  {% endif %}
+                </p>
+                <p class="is-size-7 has-text-grey">{{ a.produitID }}</p>
+              </div>
+
+              <div class="media-right has-text-right">
+                <div class="qty">Qté {{ a.quantite }}</div>
+                <div class="price-line">
+                  <span class="price-val">{{ a.prix_unitaire|price }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% elif lignes %}
+        <div class="order-list">
+          {% for l in lignes %}
+          <div class="order-card">
+            <article class="media">
+              <figure class="media-left">
+                <p class="image is-64x64"><img src="/static/img/no_cover.svg" alt=""></p>
+              </figure>
+              <div class="media-content">
+                <strong class="is-block">{{ l.produitID }}</strong>
+              </div>
+              <div class="media-right has-text-right">
+                <div class="qty">Qté {{ l.quantite }}</div>
+                <div class="price-line">
+                  <span class="price-val">{{ l.prix_unitaire|price }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% else %}
+          <div class="notification is-light has-text-centered">
+            Aucune ligne pour cette commande.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- colonne droite (résumé) -->
+    <aside class="order-aside">
+      <div class="order-summary" role="region" aria-labelledby="summaryTitle">
+        <h4 id="summaryTitle" class="title is-5">Résumé</h4>
+
+        <div class="is-flex is-justify-content-space-between">
+          <span>Articles</span>
+          <span>
+            {% if commande.items_count %}
+              {{ commande.items_count }}
+            {% elif articles %}
+              {{ articles|length }}
+            {% elif lignes %}
+              {{ lignes|length }}
+            {% else %}
+              0
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="is-flex is-justify-content-space-between mt-2">
+          <span>Total</span>
+          <span><strong>{{ commande.total|price }}</strong></span>
+        </div>
+
+        <hr class="my-3">
+        <a href="/mon-compte" class="button is-link is-fullwidth">⟵ Retour à mon compte</a>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

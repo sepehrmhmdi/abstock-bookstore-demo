@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription{% endblock %}
+
+{% block content %}
+<section class="section owl-login-wrapper">
+  <!-- Illustration chouette -->
+  <div class="owl-illustration">
+    <div class="owl-container">
+      <img src="/static/img/owl_login.png" alt="Chouette illustrée" class="owl-image" />
+      <svg class="owl-eyes" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <clipPath id="eye-left-mask">
+            <circle cx="80" cy="59" r="14"/>
+          </clipPath>
+          <clipPath id="eye-right-mask">
+            <circle cx="128" cy="70" r="14"/>
+          </clipPath>
+        </defs>
+
+        <!-- Globes -->
+        <circle class="eye" cx="80" cy="59" r="14" fill="#ffeb00" stroke="#000" stroke-width="3"/>
+        <circle class="eye" cx="128" cy="70" r="14" fill="#ffeb00" stroke="#000" stroke-width="3"/>
+
+        <!-- Pupilles -->
+        <circle class="pupil" id="pupil-left" cx="80" cy="59" r="4" fill="#000" stroke="#282418" stroke-width="1" clip-path="url(#eye-left-mask)"/>
+        <circle class="pupil" id="pupil-right" cx="128" cy="70" r="4" fill="#000" stroke="#282418" stroke-width="1" clip-path="url(#eye-right-mask)"/>
+
+        <!-- Paupières (masquées par défaut) -->
+        <ellipse class="eyelid" id="lid-left" cx="80" cy="59" rx="15" ry="14" fill="#e0a554" clip-path="url(#eye-left-mask)" visibility="hidden"/>
+        <ellipse class="eyelid" id="lid-right" cx="128" cy="70" rx="15" ry="14" fill="#e0a554" clip-path="url(#eye-right-mask)" visibility="hidden"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="signup-container box">
+    <h1 class="title is-4 has-text-centered">Créer un compte</h1>
+
+    {% if error %}
+      <div class="notification is-danger has-text-centered" role="alert" aria-live="polite">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="POST" action="/inscription" novalidate>
+      <!-- Prénom -->
+      <div class="field">
+        <label class="label" for="prenomInput">Prénom</label>
+        <div class="control">
+          <input id="prenomInput"
+                 class="input"
+                 type="text"
+                 name="prenom"
+                 {% if prenom %}value="{{ prenom }}"{% endif %}
+                 required
+                 autocomplete="given-name"
+                 inputmode="text">
+        </div>
+      </div>
+
+      <!-- Nom -->
+      <div class="field">
+        <label class="label" for="nomInput">Nom</label>
+        <div class="control">
+          <input id="nomInput"
+                 class="input"
+                 type="text"
+                 name="nom"
+                 {% if nom %}value="{{ nom }}"{% endif %}
+                 required
+                 autocomplete="family-name"
+                 inputmode="text">
+        </div>
+      </div>
+
+      <!-- Téléphone -->
+      <div class="field">
+        <label class="label" for="telInput">Téléphone</label>
+        <div class="control">
+          <input id="telInput"
+                 class="input"
+                 type="tel"
+                 name="telephone"
+                 {% if telephone %}value="{{ telephone }}"{% endif %}
+                 required
+                 pattern="[0-9+ ]{6,}"
+                 autocomplete="tel">
+        </div>
+        <p class="help">Ex&nbsp;: +33 6 12 34 56 78</p>
+      </div>
+
+      <!-- Email -->
+      <div class="field">
+        <label class="label" for="emailInput">Email</label>
+        <div class="control has-icons-left">
+          <input id="emailInput"
+                 class="input"
+                 type="email"
+                 name="email"
+                 {% if email %}value="{{ email }}"{% endif %}
+                 required
+                 autocomplete="email"
+                 inputmode="email">
+          <span class="icon is-small is-left"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+        </div>
+      </div>
+
+      <!-- Mot de passe -->
+      <div class="field">
+        <label class="label" for="passwordField">Mot de passe</label>
+        <div class="control has-icons-left">
+          <input id="passwordField"
+                 class="input"
+                 type="password"
+                 name="mdp"
+                 required
+                 minlength="6"
+                 autocomplete="new-password"
+                 aria-describedby="pwdHelp"
+                 inputmode="text">
+          <span class="icon is-small is-left"><i class="fas fa-lock" aria-hidden="true"></i></span>
+        </div>
+        <p id="pwdHelp" class="help">Au moins 6 caractères.</p>
+      </div>
+
+      <!-- Confirmation -->
+      <div class="field">
+        <label class="label" for="confirmPasswordField">Confirmation du mot de passe</label>
+        <div class="control has-icons-left">
+          <input id="confirmPasswordField"
+                 class="input"
+                 type="password"
+                 name="confirm_password"
+                 required
+                 autocomplete="new-password"
+                 aria-describedby="matchHelp"
+                 inputmode="text">
+          <span class="icon is-small is-left"><i class="fas fa-check-circle" aria-hidden="true"></i></span>
+        </div>
+        <p id="matchHelp" class="help" aria-live="polite"></p>
+      </div>
+
+      <!-- CGU / consentement (optionnel) -->
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" id="cguCheck" required>
+          J’accepte les <a href="/cgu" target="_blank" rel="noopener">conditions d’utilisation</a>.
+        </label>
+      </div>
+
+      <!-- Bouton -->
+      <div class="field mt-5">
+        <button id="submitBtn" class="button is-link is-fullwidth" type="submit" disabled>
+          S'inscrire
+        </button>
+      </div>
+
+      <p class="has-text-centered mt-4">
+        Déjà inscrit&nbsp;? <a href="/connexion">Se connecter</a>
+      </p>
+    </form>
+  </div>
+</section>
+
+<script>
+  // ---------- Animation des yeux ----------
+  let eyesClosed = false;
+  const lidLeft  = document.getElementById("lid-left");
+  const lidRight = document.getElementById("lid-right");
+
+  function closeEyes() {
+    if (!lidLeft || !lidRight) return;
+    lidLeft.setAttribute("visibility", "visible");
+    lidRight.setAttribute("visibility", "visible");
+  }
+  function openEyes() {
+    if (!lidLeft || !lidRight) return;
+    lidLeft.setAttribute("visibility", "hidden");
+    lidRight.setAttribute("visibility", "hidden");
+  }
+
+  document.addEventListener("mousemove", function(event) {
+    if (eyesClosed) return;
+    const svg = document.querySelector(".owl-eyes");
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const movePupil = (id, cx, cy) => {
+      const pupil = document.getElementById(id);
+      if (!pupil) return;
+      const dx = Math.max(Math.min((mouseX - cx) / 30, 4), -4);
+      const dy = Math.max(Math.min((mouseY - cy) / 30, 4), -4);
+      pupil.setAttribute("cx", cx + dx);
+      pupil.setAttribute("cy", cy + dy);
+    };
+    movePupil("pupil-left", 80, 59);
+    movePupil("pupil-right", 128, 70);
+  });
+
+  // Clignement occasionnel
+  setInterval(() => {
+    if (eyesClosed) return;
+    closeEyes();
+    setTimeout(openEyes, 200);
+  }, 8000);
+
+  // ---------- Validation côté client minimale ----------
+  const pwd        = document.getElementById("passwordField");
+  const confirm    = document.getElementById("confirmPasswordField");
+  const matchHelp  = document.getElementById("matchHelp");
+  const submitBtn  = document.getElementById("submitBtn");
+  const cguCheck   = document.getElementById("cguCheck");
+
+  function updateSubmitDisabled() {
+    const okLength = pwd.value.length >= 6;
+    const match    = pwd.value && confirm.value && pwd.value === confirm.value;
+    const cguOk    = cguCheck && cguCheck.checked;
+    submitBtn.disabled = !(okLength && match && cguOk);
+  }
+
+  function validatePasswords() {
+    const tooShort = pwd.value.length > 0 && pwd.value.length < 6;
+    const match    = pwd.value.length >= 6 && pwd.value === confirm.value;
+
+    if (tooShort) {
+      matchHelp.textContent = "Mot de passe trop court (6 caractères minimum).";
+      matchHelp.className = "help is-danger";
+    } else if (confirm.value && !match) {
+      matchHelp.textContent = "Les mots de passe ne correspondent pas.";
+      matchHelp.className = "help is-danger";
+    } else if (pwd.value.length >= 6 && confirm.value.length >= 1 && match) {
+      matchHelp.textContent = "C'est bon !";
+      matchHelp.className = "help is-success";
+    } else {
+      matchHelp.textContent = "";
+      matchHelp.className = "help";
+    }
+    updateSubmitDisabled();
+  }
+
+  [pwd, confirm].forEach(input => {
+    input.addEventListener("input", validatePasswords);
+    input.addEventListener("focus", () => { eyesClosed = true; closeEyes(); });
+    input.addEventListener("blur",  () => { eyesClosed = false; openEyes(); });
+  });
+
+  if (cguCheck) {
+    cguCheck.addEventListener("change", updateSubmitDisabled);
+  }
+
+  // Empêche l’envoi si le navigateur ne bloque pas déjà
+  document.querySelector("form").addEventListener("submit", function(e) {
+    if (submitBtn.disabled) {
+      e.preventDefault();
+      validatePasswords();
+    }
+  });
+</script>
+
+<style>
+  .owl-login-wrapper {
+    max-width: 520px;
+    margin: 3rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .owl-container {
+    position: relative;
+    width: 140px;
+    margin-bottom: 1.5rem;
+  }
+  .owl-image { width: 100%; display: block; }
+  .owl-eyes {
+    position: absolute; top: 0; left: 0; width: 100%;
+    pointer-events: none;
+  }
+  .eyelid { transition: visibility 0s, opacity 0.15s ease-in-out; }
+
+  .signup-container {
+    width: 100%;
+    background-color: #fffade;
+    border: 1px solid #d6c7b0;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .title { text-align: center; color: #814548; }
+  .button.is-link { background-color: #6d2c2f; color: #fff; font-weight: 600; border-radius: 25px; }
+  .button.is-link:hover { background-color: #5a2327; color: #fff; }
+
+  .notification.is-danger { background: #ffe3e3; border: 1px solid #f5b5b5; color: #a23030; }
+
+  /* Dark mode */
+  body.dark-mode .signup-container {
+    background-color: #4a3c33;
+    border-color: #7c6357;
+    color: #f5f5f5;
+  }
+  body.dark-mode .signup-container input {
+    background-color: #6a5a50 !important;
+    color: #f5f5f5 !important;
+    border: 1px solid #9e8c7f !important;
+  }
+  body.dark-mode .signup-container input::placeholder { color: #d0c6bc; }
+  body.dark-mode .signup-container label { color: #d0c6bc; }
+  body.dark-mode .signup-container .icon.is-left i { color: #d0c6bc; }
+</style>
+{% endblock %}

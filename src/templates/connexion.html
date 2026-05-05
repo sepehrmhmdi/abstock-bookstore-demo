@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion{% endblock %}
+
+{% block content %}
+<section class="section owl-login-wrapper">
+  <!-- Illustration chouette -->
+  <div class="owl-illustration">
+    <div class="owl-container" aria-hidden="true">
+      <img src="/static/img/owl_login.png" alt="Chouette illustrée" class="owl-image" />
+      <svg class="owl-eyes" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+        <defs>
+          <clipPath id="eye-left-mask">
+            <circle cx="80" cy="59" r="14"/>
+          </clipPath>
+          <clipPath id="eye-right-mask">
+            <circle cx="128" cy="70" r="14"/>
+          </clipPath>
+        </defs>
+
+        <!-- Globes -->
+        <circle class="eye" cx="80" cy="59" r="14" fill="#ffeb00" stroke="#000" stroke-width="3"/>
+        <circle class="eye" cx="128" cy="70" r="14" fill="#ffeb00" stroke="#000" stroke-width="3"/>
+
+        <!-- Pupilles -->
+        <circle class="pupil" id="pupil-left" cx="80" cy="59" r="4" fill="#000" stroke="#282418" stroke-width="1" clip-path="url(#eye-left-mask)"/>
+        <circle class="pupil" id="pupil-right" cx="128" cy="70" r="4" fill="#000" stroke="#282418" stroke-width="1" clip-path="url(#eye-right-mask)"/>
+
+        <!-- Paupières (animées via cy) -->
+        <ellipse class="eyelid" id="lid-left" cx="80" cy="30" rx="15" ry="14" fill="#e0a554" clip-path="url(#eye-left-mask)"/>
+        <ellipse class="eyelid" id="lid-right" cx="128" cy="40" rx="15" ry="14" fill="#e0a554" clip-path="url(#eye-right-mask)"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="login-container box">
+    <h1 class="title is-4 has-text-centered">Connexion</h1>
+
+    {% if error %}
+      <div class="notification is-danger has-text-centered" role="alert" aria-live="polite">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="POST" action="/connexion" novalidate aria-describedby="formHelp">
+      <!-- (Optionnel) Jeton anti-CSRF si vous en passez un côté serveur -->
+      {% if csrf_token %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% endif %}
+
+      <!-- Email -->
+      <div class="field">
+        <label class="label" for="emailInput">Email</label>
+        <div class="control has-icons-left">
+          <input id="emailInput"
+                 class="input"
+                 type="email"
+                 name="email"
+                 inputmode="email"
+                 autocomplete="email"
+                 required
+                 aria-required="true"
+                 {% if email %}value="{{ email }}"{% endif %}>
+          <span class="icon is-small is-left"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+        </div>
+        <p class="help">Utilisez l’adresse liée à votre compte.</p>
+      </div>
+
+      <!-- Mot de passe -->
+      <div class="field">
+        <label class="label" for="passwordField">Mot de passe</label>
+        <div class="control has-icons-left has-icons-right password-wrapper">
+          <input id="passwordField"
+                 class="input"
+                 type="password"
+                 name="mdp"
+                 minlength="6"
+                 autocomplete="current-password"
+                 required
+                 aria-required="true"
+                 aria-describedby="pwdHelp capsHelp">
+          <span class="icon is-small is-left"><i class="fas fa-lock" aria-hidden="true"></i></span>
+
+          <!-- Bouton afficher/masquer -->
+          <button type="button"
+                  class="button is-small is-light show-toggle"
+                  aria-label="Afficher le mot de passe"
+                  aria-pressed="false"
+                  id="togglePwdBtn">Afficher</button>
+        </div>
+        <p id="pwdHelp" class="help">6&nbsp;caractères minimum.</p>
+        <p id="capsHelp" class="help is-warning is-hidden" aria-live="polite">Attention&nbsp;: Verr. Maj activée.</p>
+      </div>
+
+      <!-- Options -->
+      <div class="field is-flex is-justify-content-space-between is-align-items-center">
+        <label class="checkbox">
+          <input type="checkbox" id="rememberCheck" name="remember" value="1">
+          Rester connecté
+        </label>
+        <a class="is-size-7" href="/mot-de-passe-oublie">Mot de passe oublié&nbsp;?</a>
+      </div>
+
+      <!-- Bouton -->
+      <div class="field mt-5">
+        <button id="submitBtn" class="button is-link is-fullwidth" type="submit" disabled>
+          <span class="btn-label">Se connecter</span>
+          <span class="btn-spinner is-hidden" aria-hidden="true">⏳</span>
+        </button>
+      </div>
+
+      <p id="formHelp" class="has-text-centered is-size-7">
+        Pas encore inscrit&nbsp;? <a href="/inscription">Créer un compte</a>
+      </p>
+    </form>
+  </div>
+</section>
+
+<script>
+  // ----------------- Animation chouette -----------------
+  let eyesClosed = false;
+
+  function closeEyes() {
+    const lidL = document.getElementById("lid-left");
+    const lidR = document.getElementById("lid-right");
+    if (!lidL || !lidR) return;
+    lidL.setAttribute("cy", 59);
+    lidR.setAttribute("cy", 70);
+  }
+  function openEyes() {
+    const lidL = document.getElementById("lid-left");
+    const lidR = document.getElementById("lid-right");
+    if (!lidL || !lidR) return;
+    lidL.setAttribute("cy", 20);
+    lidR.setAttribute("cy", 30);
+  }
+
+  // Pupilles suivent la souris
+  document.addEventListener("mousemove", function(event) {
+    const svg = document.querySelector(".owl-eyes");
+    if (!svg || eyesClosed) return;
+    const rect = svg.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const movePupil = (id, cx, cy) => {
+      const pupil = document.getElementById(id);
+      if (!pupil) return;
+      const dx = Math.max(Math.min((mouseX - cx) / 30, 4), -4);
+      const dy = Math.max(Math.min((mouseY - cy) / 30, 4), -4);
+      pupil.setAttribute("cx", cx + dx);
+      pupil.setAttribute("cy", cy + dy);
+    };
+    movePupil("pupil-left", 80, 59);
+    movePupil("pupil-right", 128, 70);
+  });
+
+  // Clignement régulier
+  setInterval(() => {
+    if (eyesClosed) return;
+    closeEyes();
+    setTimeout(openEyes, 200);
+  }, 8000);
+
+  // ----------------- Helpers formulaire -----------------
+  const emailInput = document.getElementById("emailInput");
+  const pwdInput   = document.getElementById("passwordField");
+  const submitBtn  = document.getElementById("submitBtn");
+  const btnLabel   = document.querySelector("#submitBtn .btn-label");
+  const btnSpin    = document.querySelector("#submitBtn .btn-spinner");
+  const togglePwd  = document.getElementById("togglePwdBtn");
+  const capsHelp   = document.getElementById("capsHelp");
+
+  // Activer/désactiver le bouton
+  function updateButtonState() {
+    const emailOK = emailInput.value.trim().length > 3 && emailInput.checkValidity();
+    const pwdOK   = pwdInput.value.length >= 6;
+    submitBtn.disabled = !(emailOK && pwdOK);
+  }
+
+  // Afficher/Masquer le mot de passe
+  if (togglePwd) {
+    togglePwd.addEventListener("click", () => {
+      const isText = pwdInput.type === "text";
+      pwdInput.type = isText ? "password" : "text";
+      togglePwd.setAttribute("aria-pressed", String(!isText));
+      togglePwd.textContent = isText ? "Afficher" : "Masquer";
+      pwdInput.focus();
+    });
+  }
+
+  // Alerte Caps Lock
+  function handleCaps(e) {
+    const caps = e.getModifierState && e.getModifierState("CapsLock");
+    if (caps) {
+      capsHelp.classList.remove("is-hidden");
+    } else {
+      capsHelp.classList.add("is-hidden");
+    }
+  }
+  ["keydown", "keyup"].forEach(ev => pwdInput.addEventListener(ev, handleCaps));
+
+  // Oeil fermé lors de la saisie du mot de passe
+  pwdInput.addEventListener("focus", () => { eyesClosed = true; closeEyes(); });
+  pwdInput.addEventListener("blur",  () => { eyesClosed = false; openEyes(); });
+
+  // Validation en direct
+  [emailInput, pwdInput].forEach(el => el.addEventListener("input", updateButtonState));
+  updateButtonState();
+
+  // État "chargement" à l’envoi + garde-fou double-submit
+  document.querySelector("form").addEventListener("submit", function(e) {
+    if (submitBtn.disabled) {
+      e.preventDefault();
+      return;
+    }
+    submitBtn.disabled = true;
+    if (btnLabel && btnSpin) {
+      btnLabel.textContent = "Connexion…";
+      btnSpin.classList.remove("is-hidden");
+    }
+  });
+
+  // Soumission via Entrée : on force le check pour ne pas poster trop tôt
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") updateButtonState();
+  });
+</script>
+
+<style>
+  .owl-login-wrapper {
+    max-width: 460px;
+    margin: 4rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .owl-container { position: relative; width: 140px; margin-bottom: 1.5rem; }
+  .owl-image { width: 100%; display: block; }
+  .owl-eyes { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+  .eyelid { transition: cy 0.15s ease-in-out; }
+
+  .login-container {
+    width: 100%;
+    background-color: #fffade;
+    border: 1px solid #d6c7b0;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .title { color: #382744; margin-bottom: 1.5rem; text-align: center; }
+
+  .input { background-color: #fefcf4; }
+  .password-wrapper { position: relative; }
+  .show-toggle {
+    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+    line-height: 1; padding: 0.25rem 0.5rem;
+  }
+
+  .button.is-link {
+    background-color: #6d2c2f; color: #fff; font-weight: bold; border-radius: 25px;
+  }
+  .button.is-link:hover   { background-color: #5a2327; }
+  .button[disabled]       { opacity: .7; cursor: not-allowed; }
+  .btn-spinner            { margin-left: .5rem; }
+
+  .notification.is-danger {
+    background: #ffe3e3; border: 1px solid #f5b5b5; color: #a23030; margin-bottom: 1rem;
+  }
+  .help.is-warning { color: #7a4f00; }
+
+  /* Liens */
+  .has-text-centered a, .login-container a { color: #6d2c2f; font-weight: 500; }
+
+  /* Dark mode */
+  body.dark-mode .login-container { background-color: #4a3c33; color: #f5f5f5; border-color: #7c6357; }
+  body.dark-mode .input { background-color: #6a5a50; color: #f5f5f5; border: 1px solid #9e8c7f; }
+  body.dark-mode .input::placeholder { color: #d0c6bc; }
+  body.dark-mode .label, body.dark-mode .icon.is-left i, body.dark-mode a { color: #d7c5ec; }
+  body.dark-mode .button.is-link { background-color: #8d6e63; }
+  body.dark-mode .button.is-link:hover { background-color: #bca0e2; color: #222; }
+</style>
+{% endblock %}

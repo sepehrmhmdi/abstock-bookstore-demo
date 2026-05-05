@@ -1,0 +1,6 @@
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (when (find-package :abstock/currencies)
+    (in-package :abstock/currencies)
+    (unless (fboundp 'format-price)
+      (defun format-price (price currency &key (stream *standard-output*))
+        (format stream "~,2f ~A" price currency)))))

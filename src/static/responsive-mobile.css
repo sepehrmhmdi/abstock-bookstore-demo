@@ -1,0 +1,6 @@
+/* mobile tweaks (optionnel) */
+@media (max-width: 768px) {
+  .container { padding: 0 12px; }
+  .grid { grid-template-columns: 1fr !important; }
+  header nav { gap: .5rem; }
+}

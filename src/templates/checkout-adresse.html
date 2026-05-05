@@ -1,0 +1,396 @@
+{%extends "base.html"%}
+{%block title%}Adresse{%endblock%}
+{%block content%}
+
+<style>
+:root{
+  --primary:#3f4c73;
+  --primary-weak:#e6eaf7;
+  --ink:#2b2b2b;
+  --paper:#fffdf3;
+  --border:#e6ddc7;
+}
+
+/* Layout & header */
+.checkout-wrap{max-width:900px;margin:0 auto;padding:1.2rem}
+h1.title{font-size:1.35rem;margin:.2rem 0 .8rem;text-align:center;color:var(--ink);font-weight:600}
+
+/* Stepper */
+.stepper{display:flex;gap:.75rem;align-items:center;justify-content:center;margin:0 0 1rem}
+.step{display:flex;align-items:center;gap:.5rem;font-size:.95rem;opacity:.7}
+.step.is-active{font-weight:600;opacity:1}
+.step .dot{width:.9rem;height:.9rem;border-radius:999px;border:2px solid #333}
+.step.is-active .dot{background:#333}
+
+/* Mascotte */
+.owl{display:block;margin:.15rem auto .25rem;width:64px;height:auto;filter:drop-shadow(0 1px 0 rgba(0,0,0,.04))}
+
+/* Cartes & messages */
+.card{background:#fff;padding:1rem 1.2rem;border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.label{font-weight:600;font-size:.92rem;margin-bottom:.25rem;display:block;color:#333}
+.help{font-size:.85rem;opacity:.75;margin-top:.35rem}
+.message{background:#ffe9e9;border:1px solid #f3b5b5;border-radius:10px;padding:.7rem .9rem;margin:.8rem 0}
+
+/* Radios en pilules */
+.radio-row{display:flex;flex-wrap:wrap;gap:.6rem;margin:.4rem 0}
+.radio-pill{display:flex;align-items:flex-start;gap:.5rem;border:1px solid var(--border);border-radius:12px;padding:.6rem .85rem;min-width:260px;background:#fff;cursor:pointer;transition:box-shadow .15s,background-color .15s}
+.radio-pill:hover{box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.radio-pill input{accent-color:var(--primary)}
+.addr-lines{font-size:.92rem;line-height:1.25rem}
+
+/* Champs */
+.field{margin:.75rem 0}
+.input{width:100%;padding:.55rem .6rem;margin:.25rem 0 .2rem;border:1px solid #ddd;border-radius:.45rem}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+@media (max-width:720px){.grid-2{grid-template-columns:1fr}}
+
+/* Actions & boutons */
+.actions{display:flex;justify-content:center;gap:.6rem;margin-top:1rem}
+.button{appearance:none;border:0;border-radius:999px;padding:.75rem 1.2rem;background:var(--primary);color:#fff;cursor:pointer;transition:filter .15s,background-color .15s;color:#fff;text-decoration:none;display:inline-flex;align-items:center}
+.button:hover{filter:brightness(1.05);color:#fff}
+.button.is-light{background:var(--primary-weak);color:#2e3656}
+.button.is-light:hover{background:#dde3f5}
+.button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:12px}
+</style>
+
+<div class="checkout-wrap">
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step"><span class="dot"></span>Panier</div>
+    <div class="step"><span class="dot"></span>Livraison</div>
+    <div class="step is-active"><span class="dot"></span>Adresse</div>
+    <div class="step"><span class="dot"></span>Paiement</div>
+  </div>
+
+  <!-- Mascotte -->
+  <img class="owl" src="/static/img/owl_login.png" alt="Chouette">
+
+  <h1 class="title">Étape 2 — Adresse</h1>
+
+  {% if form_error %}<div class="message">{{form_error}}</div>{% endif %}
+
+  <form method="post" action="/checkout/adresse" class="card" id="addr-form" style="background:var(--paper);border:1px solid var(--border);">
+    <!-- Propager les infos -->
+    <input type="hidden" name="ids" value="{{ids}}">
+    <input type="hidden" name="next" value="payment">
+    <input type="hidden" name="mode" value="{% if mode %}{{mode}}{% else %}livraison{% endif %}">
+
+    <!-- Choix transporteur -> envoyés au POST -->
+    <input type="hidden" name="shipping_id" id="shipping_id">
+    <input type="hidden" name="ship" id="ship"> <!-- centimes -->
+    <!-- Pour relais -->
+    <input type="hidden" name="pickup_id" id="pickup_id">
+    <input type="hidden" name="pickup_label" id="pickup_label">
+
+    {% if has_adresses %}
+      <div class="label">Choisir une adresse enregistrée</div>
+      <div class="radio-row">
+        {% for a in adresses %}
+          <label class="radio-pill">
+            <input type="radio" name="existing_adresse" value="{{a.id}}"
+                   data-l1="{{a.ligne1}}"
+                   data-l2="{% if a.ligne2 %}{{a.ligne2}}{% endif %}"
+                   data-ville="{{a.ville}}"
+                   data-cp="{% if a.code_postal %}{{a.code_postal}}{% endif %}"
+                   data-pays="{% if a.pays %}{{a.pays}}{% else %}France{% endif %}">
+            <div class="addr-lines">
+              <div><strong>{{a.ligne1}}</strong></div>
+              {% if a.ligne2 %}<div>{{a.ligne2}}</div>{% endif %}
+              <div>{% if a.code_postal %}{{a.code_postal}} {% endif %}{{a.ville}}</div>
+              {% if a.pays %}<div>{{a.pays}}</div>{% endif %}
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="field" style="margin-top:1rem">
+      <div class="label">Ou saisir une nouvelle adresse</div>
+
+      <label class="label" for="ligne1">Adresse (ligne 1)</label>
+      <input class="input" id="ligne1" name="ligne1" type="text" value="{{ligne1}}">
+
+      <label class="label" for="ligne2">Complément (ligne 2)</label>
+      <input class="input" id="ligne2" name="ligne2" type="text" value="{{ligne2}}">
+
+      <div class="grid-2">
+        <div>
+          <label class="label" for="ville">Ville</label>
+          <input class="input" id="ville" name="ville" type="text" value="{{ville}}">
+        </div>
+        <div>
+          <label class="label" for="code_postal">Code postal</label>
+          <input class="input" id="code_postal" name="code_postal" type="text" value="{{code_postal}}">
+        </div>
+      </div>
+
+      <label class="label" for="pays">Pays</label>
+      <input class="input" id="pays" name="pays" type="text" value="{{pays}}" placeholder="France">
+
+      <div class="help">Si vous cochez une adresse existante, ces champs peuvent rester vides.</div>
+    </div>
+
+    <!-- === Widget transporteur (Colissimo & co) === -->
+    <div class="field" style="margin-top:1rem">
+      <div class="label">Choisir un mode de livraison</div>
+      <div id="shipping-widget" class="card" style="padding:.8rem">
+        <div id="ship-hint" class="help">
+          Renseignez l’adresse (ou cochez une adresse enregistrée) pour voir les offres disponibles.
+        </div>
+        <div id="ship-loading" class="help" style="display:none">Recherche des offres…</div>
+        <div id="ship-offers" class="radio-row"></div>
+        <div id="ship-error" class="message" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Zone widget Point Relais (Colissimo) -->
+    <div id="pickup-zone" class="field" style="margin-top:1rem; display:none;">
+      {% include "colissimo-widget.html" %}
+    </div>
+
+    <div class="actions">
+      <a href="/checkout/livraison?ids={{ids}}" class="button is-light">⟵ Retour</a>
+      <button type="submit" class="button">Continuer</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('addr-form');
+  const ids = form.querySelector('input[name="ids"]').value;
+
+  const inputs = {
+    l1: document.getElementById('ligne1'),
+    l2: document.getElementById('ligne2'),
+    ville: document.getElementById('ville'),
+    cp: document.getElementById('code_postal'),
+    pays: document.getElementById('pays')
+  };
+  const existingRadios = Array.from(document.querySelectorAll('input[name="existing_adresse"]'));
+
+  const shipOffersBox = document.getElementById('ship-offers');
+  const shipHint = document.getElementById('ship-hint');
+  const shipLoading = document.getElementById('ship-loading');
+  const shipError = document.getElementById('ship-error');
+  const hiddenShippingId = document.getElementById('shipping_id');
+  const hiddenShip = document.getElementById('ship');
+  const pickupZone = document.getElementById('pickup-zone');
+  const pickupId = document.getElementById('pickup_id');
+  const pickupLabel = document.getElementById('pickup_label');
+
+  function euros(cents){return (Math.round(cents)/100).toFixed(2).replace('.', ',')+' €'}
+
+  // --- conversion robuste -> centimes ---
+  function toCents(v){
+    if (v == null) return null;
+
+    // numéric
+    if (typeof v === 'number' && isFinite(v)){
+      // cas x100 accidentel (45000 => 450)
+      if (Number.isInteger(v) && v >= 10000 && v % 100 === 0) {
+        const fix = Math.round(v / 100);
+        if (fix > 0 && fix < 10000) return fix;
+      }
+      return Number.isInteger(v) ? v : Math.round(v*100);
+    }
+
+    // string
+    if (typeof v === 'string'){
+      let s = v.trim();
+      if (!s) return null;
+
+      // si que des chiffres
+      if (/^\d+$/.test(s)){
+        const n = parseInt(s,10);
+        // même correctif x100 pour les strings : "45000" => 450
+        if (n >= 10000 && n % 100 === 0){
+          const fix = Math.round(n/100);
+          if (fix > 0 && fix < 10000) return fix;
+        }
+        return n >= 1000 ? n : n*100;
+      }
+
+      // nettoyer devise
+      s = s.replace(/[^\d.,-]/g,'');
+      if (!s) return null;
+
+      // détecter décimal
+      let sep = null;
+      if (s.includes(',') && s.includes('.')) sep = (s.lastIndexOf(',') > s.lastIndexOf('.')) ? ',' : '.';
+      else if (s.includes(',')) sep = ',';
+      else if (s.includes('.')) sep = '.';
+
+      if (sep){
+        const [eu, ce='0'] = s.split(sep);
+        const eurosI = parseInt(eu.replace(/\D/g,''),10) || 0;
+        const centsI = parseInt((ce+'00').slice(0,2),10) || 0;
+        return eurosI*100 + centsI;
+      } else {
+        const n = parseInt(s,10);
+        if (!isFinite(n)) return null;
+        if (n >= 10000 && n % 100 === 0){
+          const fix = Math.round(n/100);
+          if (fix > 0 && fix < 10000) return fix;
+        }
+        return n >= 1000 ? n : n*100;
+      }
+    }
+    return null;
+  }
+
+  function getAddressFromExisting(){
+    const r = existingRadios.find(x=>x.checked);
+    if(!r) return null;
+    return {l1:r.dataset.l1||'', l2:r.dataset.l2||'', ville:r.dataset.ville||'',
+            cp:r.dataset.cp||'', pays:r.dataset.pays||'France'};
+  }
+  function getAddressFromInputs(){
+    return {l1:inputs.l1.value.trim(), l2:inputs.l2.value.trim(),
+            ville:inputs.ville.value.trim(), cp:inputs.cp.value.trim(),
+            pays:(inputs.pays.value.trim()||'France')};
+  }
+  function currentAddress(){ return getAddressFromExisting() || getAddressFromInputs(); }
+
+  let t=null;
+  function debounce(fn){ clearTimeout(t); t=setTimeout(fn,400); }
+
+  function buildURL(addr){
+    const q = new URLSearchParams({
+      ids: ids, l1: addr.l1||'', l2: addr.l2||'',
+      ville: addr.ville||'', cp: addr.cp||'', pays: addr.pays||'France'
+    });
+    return `/api/shipping/rates?${q.toString()}`;
+  }
+
+  function normalizeOffers(json){
+    const arr = Array.isArray(json) ? json : (json.offers || []);
+    return arr.map(o=>{
+      const id = o.id || o.offer_id || o.code || o.productCode || String(Math.random());
+      const label = o.label || o.name || o.title || 'Livraison';
+      const kind  = (o.kind || o.type || o.mode || '').toString();
+      const days  = o.days || o.delay || o.eta || '';
+
+      // sources possibles pour le prix
+      let cents =
+        toCents(o.cents) ??
+        toCents(o.price_cents) ??
+        toCents(o.amount) ??
+        toCents(o.price) ?? 0;
+
+      // Sécurité universelle anti x100 (utile pour "Point Relais" aussi)
+      if (cents >= 10000 && cents % 100 === 0){
+        const fix = Math.round(cents/100);
+        if (fix > 0 && fix < 10000) cents = fix;
+      }
+
+      const low = (label+' '+kind).toLowerCase();
+      const requiresPickup = /point\s*retrait|relais|pickup/.test(low);
+
+      return {id, label, cents, kind, days, requiresPickup};
+    });
+  }
+
+  function togglePickup(show){
+    pickupZone.style.display = show ? '' : 'none';
+    if (!show){ pickupId.value=''; pickupLabel.value=''; }
+  }
+
+  function renderOffers(offers){
+    shipOffersBox.innerHTML='';
+    offers.forEach((o)=>{
+      const el=document.createElement('label');
+      el.className='radio-pill';
+      el.innerHTML = `
+        <input type="radio" name="shipping_offer" value="${o.id}" data-cents="${o.cents}" data-pickup="${o.requiresPickup ? '1':'0'}">
+        <div>
+          <div><strong>${o.label}</strong>${o.kind? ' · '+o.kind : ''}</div>
+          <div class="help">${o.days? ('Estimation: '+o.days+' · '):''}${euros(o.cents)}</div>
+        </div>`;
+      shipOffersBox.appendChild(el);
+    });
+
+    const radios = shipOffersBox.querySelectorAll('input[name="shipping_offer"]');
+    radios.forEach(r=>{
+      r.addEventListener('change',()=>{
+        hiddenShippingId.value = r.value;
+        hiddenShip.value = r.dataset.cents || '';
+        togglePickup(r.dataset.pickup === '1');
+      });
+    });
+
+    // auto-sélection 1ère offre
+    if (radios.length){
+      radios[0].checked = true;
+      radios[0].dispatchEvent(new Event('change'));
+    }
+  }
+
+  async function fetchOffers(){
+    const addr = currentAddress();
+    if(!addr.l1 || !addr.ville || !addr.cp){
+      shipHint.style.display=''; shipLoading.style.display='none';
+      shipError.style.display='none'; shipOffersBox.innerHTML='';
+      hiddenShippingId.value=''; hiddenShip.value=''; togglePickup(false); return;
+    }
+    shipHint.style.display='none'; shipError.style.display='none';
+    shipLoading.style.display='';
+    try{
+      const res = await fetch(buildURL(addr), {headers:{'Accept':'application/json'}});
+      const json = await res.json();
+      const offers = normalizeOffers(json);
+      shipLoading.style.display='none';
+      if(!offers.length){
+        shipOffersBox.innerHTML=''; shipError.style.display='';
+        shipError.textContent="Aucune offre disponible pour cette adresse.";
+        hiddenShippingId.value=''; hiddenShip.value=''; togglePickup(false); return;
+      }
+      renderOffers(offers);
+    }catch(e){
+      shipLoading.style.display='none';
+      shipOffersBox.innerHTML=''; shipError.style.display='';
+      shipError.textContent="Erreur lors de la récupération des offres.";
+      hiddenShippingId.value=''; hiddenShip.value=''; togglePickup(false);
+    }
+  }
+
+  // Événements
+  existingRadios.forEach(r=>r.addEventListener('change',()=>{
+    // si on coche une adresse enregistrée, on vide les champs libres
+    inputs.l1.value=inputs.l2.value=inputs.ville.value=inputs.cp.value='';
+    inputs.pays.value='France';
+    debounce(fetchOffers);
+  }));
+  Object.values(inputs).forEach(inp=>inp.addEventListener('input',()=>{
+    existingRadios.forEach(r=>r.checked=false);
+    debounce(fetchOffers);
+  }));
+
+  // Préchargement
+  debounce(fetchOffers);
+
+  // Exiger un mode de livraison (et point relais le cas échéant)
+  form.addEventListener('submit', (ev)=>{
+    const mode = form.querySelector('input[name="mode"]').value || 'livraison';
+    if (mode === 'livraison'){
+      if (!hiddenShippingId.value || !hiddenShip.value){
+        ev.preventDefault();
+        shipError.style.display='';
+        shipError.textContent="Choisissez un mode de livraison.";
+        window.scrollTo({top: form.offsetTop - 20, behavior:'smooth'});
+        return;
+      }
+      const selected = shipOffersBox.querySelector('input[name="shipping_offer"]:checked');
+      if (selected && selected.dataset.pickup === '1' && !pickupId.value){
+        ev.preventDefault();
+        shipError.style.display='';
+        shipError.textContent="Sélectionnez un point de retrait pour continuer.";
+        pickupZone.scrollIntoView({behavior:'smooth', block:'start'});
+        return;
+      }
+    }
+  });
+})();
+</script>
+
+{%endblock%}

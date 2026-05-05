@@ -1,0 +1,41 @@
+<form action="/search" method="get" class="box search-form">
+  <!-- Champ de recherche principal -->
+  <div class="field">
+    <label class="label is-sr-only" for="search-q">Rechercher</label>
+    <div class="control has-icons-left">
+      <input
+        class="input"
+        name="q"
+        id="search-q"
+        type="text"
+        placeholder="Chercher un titre, un auteur, un éditeur…"
+        value="{{ q }}"
+        autocomplete="off"
+      />
+      <span class="icon is-left">
+        <i class="fas fa-search"></i>
+      </span>
+    </div>
+  </div>
+
+  <!-- Choix du rayon + bouton -->
+  <div class="field is-grouped">
+    <div class="control is-expanded">
+      <div class="select is-fullwidth">
+        <select id="select-shelf" name="rayon">
+          <option value="all" {% if rayon == "all" or not rayon %}selected{% endif %}>-- Tous les rayons --</option>
+          {% for shelf in shelves %}
+            <option value="{{ shelf.id }}" {% if shelf.id == shelf_id %}selected{% endif %}>
+              {{ shelf.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="control">
+      <button type="submit" class="button is-link">
+        Chercher
+      </button>
+    </div>
+  </div>
+</form>
