@@ -1,7 +1,15 @@
 .env
+*.env
 db.db
+commande.db
+*.db
 *.sqlite
 *.sqlite3
 *.db-journal
 *.log
+*.pid
+*.out
 .DS_Store
+__MACOSX/
+node_modules/
+.venv*/
