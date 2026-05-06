@@ -2,330 +2,360 @@
 
 ## Présentation
 
-**ABStock Extended Demo** est une version **largement modifiée, étendue et personnalisée** du projet open source **ABStock**, initialement développé en Common Lisp.
+**ABStock Extended Demo** est une version largement modifiée, étendue et personnalisée du projet open source **ABStock**, initialement développé en Common Lisp.
 
-Projet d’origine :
+Projet d’origine :  
 https://github.com/vindarel/ABStock
 
-Cette version a été réalisée dans le cadre d’un **besoin concret de librairie indépendante**, puis **neutralisée** afin d’être publiée comme démonstration technique et portfolio public.
+Cette version a été réalisée dans le cadre d’un besoin concret de librairie indépendante, puis neutralisée afin d’être publiée comme démonstration technique et portfolio public.
 
 Elle illustre un travail de :
 
-* développement backend,
-* architecture applicative,
-* templating frontend,
-* intégration de services externes,
-* UX/UI,
-* adaptation métier,
-* personnalisation fonctionnelle.
+- développement backend
+- architecture applicative
+- templating frontend
+- intégration de services externes
+- UX/UI
+- adaptation métier
+- personnalisation fonctionnelle
 
-Cette publication **ne contient aucune donnée de production** :
+Cette publication ne contient aucune donnée de production :
 
-* aucune base commerciale réelle,
-* aucune donnée client,
-* aucun historique de commandes,
-* aucune clé API active,
-* aucune configuration sensible.
-
----
-
-# Philosophie du projet
-
-L’objectif n’était pas de produire une simple vitrine, mais une **application web exploitable**, pensée comme base logicielle pour une librairie moderne :
-
-* consultation catalogue,
-* recherche,
-* navigation éditoriale,
-* panier,
-* tunnel de commande,
-* authentification,
-* espace utilisateur,
-* paiement,
-* livraison,
-* administration,
-* extensibilité métier.
-
-Le projet conserve la robustesse de la base ABStock tout en y ajoutant une couche fonctionnelle et UX beaucoup plus complète.
+- aucune base commerciale réelle
+- aucune donnée client
+- aucun historique de commandes
+- aucune clé API active
+- aucune configuration sensible
 
 ---
 
-# Fonctionnalités développées / adaptées
+## Stack technique
 
-## 1) Catalogue de livres
+Le projet repose sur un environnement Common Lisp structuré autour des composants suivants :
 
-Gestion d’un catalogue structuré :
+- Backend : Common Lisp (SBCL)
+- Serveur HTTP & Routing : Hunchentoot
+- Templating : Djula (rendu HTML dynamique côté serveur)
+- Frontend :
+  - HTML5 / CSS3
+  - JavaScript
+  - Framework CSS : Bulma
+- Base de données (version originale) : SQLite
+- Proxies externes :
+  - Node.js (Express) pour Colissimo
+  - Node.js / Python / Lisp pour Stancer (approches multiples)
 
-* affichage des ouvrages,
-* fiches détaillées,
-* auteurs,
-* éditeurs,
-* distributeurs,
-* ISBN,
-* couverture,
-* métadonnées,
-* état / disponibilité,
-* présentation claire des ouvrages.
-
-Le catalogue est pensé pour rester exploitable aussi bien comme :
-
-* boutique,
-* catalogue public,
-* outil interne.
+Le projet est basé sur ABStock mais étendu avec des fonctionnalités supplémentaires et une architecture enrichie.
 
 ---
 
-## 2) Recherche & navigation
+## Architecture du projet
 
-Travail sur la consultation :
+L’application suit une architecture web backend modulaire.
 
-* moteur de recherche,
-* navigation catalogue,
-* listing lisible,
-* présentation responsive,
-* cartes produit,
-* consultation détaillée.
+### Models
+
+Les entités métier (livres, commandes, utilisateurs) sont représentées sous forme de structures Lisp.
+
+- Version originale : persistance SQLite
+- Version démo : données simulées ou absentes
+
+---
+
+### Views (Templates)
+
+Le rendu HTML est géré avec Djula :
+
+- séparation logique / présentation
+- templates réutilisables
+- rendu côté serveur
+- personnalisation du thème
+
+---
+
+### Routing & contrôleurs
+
+Les routes HTTP sont définies côté backend :
+
+- catalogue
+- panier
+- authentification
+- checkout
+- paiement
+- livraison
+
+Chaque route encapsule une logique métier spécifique.
+
+---
+
+### Proxy logic
+
+Le projet intègre une couche proxy pour interfacer des services externes.
+
+#### Colissimo
+
+- récupération de token widget
+- affichage des points relais
+- sélection utilisateur
+- communication frontend / backend
+
+#### Stancer (paiement)
+
+- encapsulation API
+- gestion des secrets côté backend
+- création de session de paiement
+- redirection utilisateur
+- gestion du retour et du statut
+
+Objectif : isoler les appels API externes et sécuriser les credentials.
+
+---
+
+## Note importante (version démo)
+
+Cette version est une démonstration technique.
+
+La base de données réelle a été supprimée pour des raisons de confidentialité.
+
+- aucune donnée client incluse
+- aucun historique réel
+- aucun contenu commercial exploitable
+
+Le projet reste fonctionnel sur le plan technique mais sert principalement à illustrer :
+
+- l’architecture backend
+- l’intégration de services externes
+- la logique métier d’une librairie
+
+---
+
+## Objectif du projet
+
+Ce projet a été réalisé pour répondre à un besoin réel.
 
 Objectif :
-**réduire la friction utilisateur**.
+
+Concevoir un système de gestion de librairie modulaire, extensible et performant en exploitant les capacités de Common Lisp (macros, flexibilité, abstraction).
+
+Il a ensuite été adapté en version publique pour démontrer :
+
+- des compétences backend solides
+- une capacité à intégrer des services externes
+- une réflexion produit complète
 
 ---
 
-## 3) Authentification & espace utilisateur
+## Philosophie du projet
 
-Implémentation / adaptation :
+L’objectif n’était pas de produire une simple vitrine, mais une application web exploitable, pensée comme base logicielle pour une librairie moderne :
 
-* inscription,
-* connexion,
-* déconnexion,
-* session utilisateur,
-* profil,
-* modification informations,
-* changement mot de passe,
-* sécurité basique côté session.
-
-Templates dédiés :
-
-* connexion,
-* inscription,
-* changement mot de passe,
-* compte.
+- consultation catalogue
+- recherche
+- navigation éditoriale
+- panier
+- tunnel de commande
+- authentification
+- espace utilisateur
+- paiement
+- livraison
+- administration
+- extensibilité métier
 
 ---
 
-## 4) Panier dynamique
+## Fonctionnalités développées / adaptées
 
-Développement d’un tunnel panier complet :
+### 1) Catalogue de livres
 
-* ajout article,
-* suppression,
-* modification quantités,
-* persistance session,
-* calcul total,
-* affichage détaillé,
-* préparation checkout.
-
----
-
-## 5) Tunnel de commande complet
-
-Mise en place d’un workflow :
-
-### Adresse
-
-* nom,
-* prénom,
-* téléphone,
-* email,
-* adresse,
-* ville,
-* code postal,
-* pays.
-
-### Livraison
-
-* choix mode livraison,
-* sélection relais,
-* intégration Colissimo.
-
-### Paiement
-
-* intégration flux de paiement.
-
-### Validation
-
-* confirmation finale.
+- affichage des ouvrages
+- fiches détaillées
+- auteurs / éditeurs
+- ISBN
+- couverture
+- disponibilité
 
 ---
 
-## 6) Intégration Colissimo
+### 2) Recherche & navigation
 
-Développement d’un proxy dédié :
+- moteur de recherche
+- navigation fluide
+- responsive
+- consultation détaillée
 
-* serveur proxy Node,
-* récupération token widget,
-* intégration widget relais,
-* sélection point relais,
-* communication front/back,
-* sérialisation des données de livraison.
-
-Cela montre :
-
-* intégration API,
-* proxy sécurisé,
-* orchestration frontend/backend.
+Objectif : réduire la friction utilisateur.
 
 ---
 
-## 7) Intégration paiement (Stancer)
+### 3) Authentification & espace utilisateur
 
-Mise en place d’un proxy de paiement :
+- inscription
+- connexion / déconnexion
+- session utilisateur
+- profil
+- modification des informations
+- changement de mot de passe
 
-* encapsulation API,
-* gestion secret côté backend,
-* création session paiement,
-* redirection utilisateur,
-* retour paiement,
-* récupération statut.
+---
+
+### 4) Panier dynamique
+
+- ajout / suppression
+- modification des quantités
+- persistance session
+- calcul du total
+
+---
+
+### 5) Tunnel de commande
+
+#### Adresse
+
+- informations utilisateur complètes
+
+#### Livraison
+
+- choix du mode de livraison
+- sélection relais Colissimo
+
+#### Paiement
+
+- intégration Stancer
+
+#### Validation
+
+- confirmation finale
+
+---
+
+### 6) Intégration Colissimo
+
+- proxy Node
+- widget officiel
+- sélection point relais
+- communication frontend / backend
+
+---
+
+### 7) Intégration paiement (Stancer)
+
+- proxy sécurisé
+- création de session
+- redirection
+- retour paiement
+- récupération du statut
 
 Implémentations présentes :
 
-* Node
-* Python
-* Lisp
-
-Objectif :
-montrer plusieurs approches d’intégration backend.
+- Node
+- Python
+- Lisp
 
 ---
 
-## 8) Frontend / UI
+### 8) Frontend / UI
 
-Travail important sur :
-
-* pages,
-* composants,
-* styles,
-* responsive,
-* dark mode,
-* formulaires,
-* feedback utilisateur,
-* cohérence visuelle.
+- pages complètes
+- responsive
+- dark mode
+- formulaires
+- cohérence visuelle
 
 Stack :
 
-* HTML
-* CSS
-* JavaScript
-* Bulma
-
-Templates fortement personnalisés.
+- HTML
+- CSS
+- JavaScript
+- Bulma
 
 ---
 
-## 9) Architecture Common Lisp
+### 9) Backend Common Lisp
 
-Backend basé sur :
-
-* Common Lisp
-* Hunchentoot
-* Djula
-* SQLite
-* modules Lisp séparés
-* configuration centralisée
-* templates compilés
-* handlers dédiés
-
-Présence de :
-
-* logique métier,
-* routes,
-* auth,
-* panier,
-* checkout,
-* paiement,
-* livraison,
-* utilitaires,
-* config.
+- Hunchentoot
+- Djula
+- modules séparés
+- configuration centralisée
+- logique métier complète
 
 ---
 
-## 10) Administration
+### 10) Administration
 
-Fonctionnalités internes :
-
-* admin route,
-* édition contenu,
-* configuration,
-* gestion interne.
+- route admin
+- édition de contenu
+- configuration
 
 ---
 
-# Ce projet montre
+## Ce projet montre
 
-Compétences mobilisées :
+### Backend
 
-## Backend
+- architecture serveur
+- logique métier
+- APIs
 
-* architecture serveur,
-* logique métier,
-* persistance,
-* sécurité basique,
-* APIs.
+### Frontend
 
-## Frontend
+- templating
+- interactions JavaScript
+- UX
 
-* templating,
-* JS interactif,
-* UX.
+### Intégration
 
-## Intégration
+- paiement
+- livraison
+- proxies backend
 
-* paiement,
-* livraison,
-* proxy backend.
+### Produit
 
-## Produit
-
-* adaptation à un besoin réel.
+- adaptation à un besoin réel
 
 ---
 
-# Captures d’écran
+## Captures d’écran
 
-## Accueil
+### Accueil
 
 ![Accueil](docs/screenshots/home.png)
 
-## Catalogue
+### Catalogue
 
-![Agenda](docs/screenshots/agenda.png)
+![Catalogue](docs/screenshots/agenda.png)
 
-## Connexion
+### Connexion
 
-![Produit](docs/screenshots/connexion.png)
+![Connexion](docs/screenshots/connexion.png)
 
-## Produits
+### Produits
 
-![Checkout](docs/screenshots/produits.png)
+![Produits](docs/screenshots/produits.png)
 
 ---
 
-# Origine du projet
+## Origine du projet
 
-Projet construit **à partir d’ABStock**, logiciel libre :
+Projet construit à partir d’ABStock :
 
 https://github.com/vindarel/ABStock
 
 Puis :
 
-* adapté,
-* modifié,
-* étendu,
-* personnalisé.
+- adapté
+- modifié
+- étendu
+- personnalisé
 
 ---
 
-# Licence
+## Contexte
+
+Projet réalisé pour un client réel (librairie), puis adapté en version publique pour démonstration technique et portfolio.
+
+---
+
+## Licence
 
 Projet original : GNU AGPL v3
 
