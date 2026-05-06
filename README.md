@@ -268,6 +268,17 @@ Stack :
 - JavaScript
 - Bulma
 
+### Expérience d’authentification interactive
+
+Implémentation d’une mascotte interactive (hibou) sur les pages de connexion :
+
+- suivi dynamique du curseur via JavaScript
+- réaction visuelle lors de la saisie du mot de passe
+- animation de confidentialité (la mascotte se couvre les yeux)
+
+Objectif :
+
+Améliorer l’engagement utilisateur et apporter une dimension plus intuitive et ludique à l’expérience d’authentification.
 ---
 
 ### 9) Backend Common Lisp
