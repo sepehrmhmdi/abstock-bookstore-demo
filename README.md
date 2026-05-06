@@ -277,8 +277,8 @@ Implémentation d’une mascotte interactive (hibou) sur les pages de connexion 
 - animation de confidentialité (la mascotte se couvre les yeux)
 
 Objectif :
-
 Améliorer l’engagement utilisateur et apporter une dimension plus intuitive et ludique à l’expérience d’authentification.
+
 ---
 
 ### 9) Backend Common Lisp
